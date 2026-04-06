@@ -917,40 +917,66 @@
       color: #4A6700;
       font-weight: 600;
     }
-    /* Habit card hover-expand — card lifts out of grid and fills page */
+    /* Habit card hover-expand — pure grid, no position tricks */
     .habit-grid {
-      position: relative;
+      transition: grid-template-columns 0.5s cubic-bezier(0.23,1,0.32,1);
+      align-items: start;
     }
     .habit-card {
-      transform-origin: center center;
+      transform-origin: center top;
       overflow: hidden;
+      /* NOTE: NO opacity in transition — GSAP animates opacity on scroll-in via
+         gsap.from(anim-card, {opacity:0}) and CSS opacity transition fights it.
+         Shrunk opacity is handled via CSS class directly (instant or GSAP-controlled). */
+      transition: transform 0.4s cubic-bezier(0.23,1,0.32,1),
+                  padding 0.4s cubic-bezier(0.23,1,0.32,1),
+                  box-shadow 0.4s ease;
     }
-    .habit-card.sibling-dim {
+    .habit-card.shrunk {
       opacity: 0.4;
-      transition: opacity 0.4s ease;
+      transform: scale(0.92);
     }
-    /* Full description (hidden by default, shown on expand via GSAP) */
-    .habit-card-full {
+    .habit-card.shrunk .habit-card-desc,
+    .habit-card.shrunk .habit-card-meta {
       display: none;
-      font-size: clamp(15px, 1.6vw, 19px);
+    }
+    .habit-card-full {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      font-size: clamp(14px, 1.3vw, 17px);
       line-height: 1.8;
       color: #333;
-      margin-bottom: 20px;
+      margin-bottom: 0;
+      transition: max-height 0.55s cubic-bezier(0.23,1,0.32,1),
+                  opacity 0.35s ease 0.18s,
+                  margin 0.4s ease;
     }
-    .habit-card.expanded .habit-card-full { display: block; }
-    .habit-card.expanded .habit-card-desc { display: none; }
+    .habit-card.expanded {
+      padding: 40px 44px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+      transform: rotate(0deg) scale(1.02);
+      z-index: 10;
+      position: relative;
+    }
     .habit-card.expanded .habit-card-name {
-      font-size: clamp(28px, 3.5vw, 42px);
+      font-size: clamp(26px, 3vw, 38px);
       margin-bottom: 10px;
     }
     .habit-card.expanded .habit-card-url {
-      font-size: 14px;
+      font-size: 13px;
       margin-bottom: 18px;
     }
+    .habit-card.expanded .habit-card-full {
+      max-height: 600px;
+      opacity: 1;
+      margin-bottom: 24px;
+    }
+    .habit-card.expanded .habit-card-desc { display: none; }
     .habit-card.expanded .habit-card-tag,
     .habit-card.expanded .habit-card-freq {
-      font-size: 12px;
-      padding: 6px 16px;
+      font-size: 11px;
+      padding: 5px 14px;
     }
 
     /* ========== RESOURCE LIST ========== */
@@ -2920,131 +2946,49 @@
     });
   }
 
-  /* ========== 12b. HABIT CARD HOVER-EXPAND (lifts out of grid, fills panel) ========== */
+  /* ========== 12b. HABIT CARD HOVER-EXPAND (pure grid reflow) ========== */
   (function initHabitHover() {
     var currentExpanded = null;
-    var originalState = null;
-    var closeTimeout = null;
-
-    function expandCard(card) {
-      if (currentExpanded === card) return;
-      if (currentExpanded) collapseCard(true);
-
-      currentExpanded = card;
-      var grid = card.closest('.habit-grid');
-      var panel = card.closest('.panel-inner');
-      var panelRect = panel.getBoundingClientRect();
-      var cardRect = card.getBoundingClientRect();
-
-      /* Save original position */
-      originalState = {
-        card: card,
-        grid: grid,
-        width: cardRect.width,
-        height: cardRect.height,
-        left: cardRect.left,
-        top: cardRect.top
-      };
-
-      /* Dim siblings */
-      grid.querySelectorAll('.habit-card').forEach(function(c) {
-        if (c !== card) c.classList.add('sibling-dim');
-      });
-
-      /* Calculate target: fill panel area below the heading */
-      var headingEl = panel.querySelector('.section-head');
-      var headBottom = headingEl ? headingEl.getBoundingClientRect().bottom + 16 : panelRect.top + 80;
-      var targetW = Math.min(panelRect.width - 40, 900);
-      var targetH = panelRect.bottom - headBottom - 20;
-      var targetX = panelRect.left + (panelRect.width - targetW) / 2;
-      var targetY = headBottom;
-
-      /* Lift card out of flow */
-      card.style.position = 'fixed';
-      card.style.zIndex = '100';
-      card.style.left = cardRect.left + 'px';
-      card.style.top = cardRect.top + 'px';
-      card.style.width = cardRect.width + 'px';
-      card.style.margin = '0';
-      card.classList.add('expanded');
-
-      /* Animate to fill panel */
-      gsap.to(card, {
-        left: targetX,
-        top: targetY,
-        width: targetW,
-        height: targetH,
-        padding: 44,
-        rotation: 0,
-        duration: 0.5,
-        ease: 'expo.out'
-      });
-    }
-
-    function collapseCard(instant) {
-      if (!currentExpanded || !originalState) return;
-      var card = currentExpanded;
-      var grid = originalState.grid;
-
-      grid.querySelectorAll('.habit-card').forEach(function(c) {
-        c.classList.remove('sibling-dim');
-      });
-
-      card.classList.remove('expanded');
-
-      if (instant) {
-        /* Quick collapse when switching cards */
-        card.style.position = '';
-        card.style.zIndex = '';
-        card.style.left = '';
-        card.style.top = '';
-        card.style.width = '';
-        card.style.height = '';
-        card.style.margin = '';
-        gsap.set(card, { clearProps: 'left,top,width,height,padding,rotation' });
-      } else {
-        /* Animate back to grid position */
-        var o = originalState;
-        gsap.to(card, {
-          left: o.left,
-          top: o.top,
-          width: o.width,
-          height: 'auto',
-          padding: 24,
-          rotation: parseFloat(card.style.getPropertyValue('--rot')) || 0,
-          duration: 0.35,
-          ease: 'power3.in',
-          onComplete: function() {
-            card.style.position = '';
-            card.style.zIndex = '';
-            card.style.left = '';
-            card.style.top = '';
-            card.style.width = '';
-            card.style.height = '';
-            card.style.margin = '';
-            gsap.set(card, { clearProps: 'left,top,width,height,padding,rotation' });
-          }
-        });
-      }
-
-      currentExpanded = null;
-      originalState = null;
-    }
-
-    /* Bind events */
-    document.querySelectorAll('.habit-card[data-expand="habit"]').forEach(function(card) {
-      card.addEventListener('mouseenter', function() {
-        clearTimeout(closeTimeout);
-        expandCard(card);
-      });
-    });
 
     document.querySelectorAll('.habit-grid').forEach(function(grid) {
-      grid.addEventListener('mouseleave', function() {
-        closeTimeout = setTimeout(function() { collapseCard(false); }, 300);
+      var cards = grid.querySelectorAll('.habit-card');
+
+      cards.forEach(function(card, idx) {
+        card.addEventListener('mouseenter', function() {
+          if (currentExpanded === card) return;
+
+          /* Reset previous */
+          if (currentExpanded) {
+            currentExpanded.classList.remove('expanded');
+            var prevGrid = currentExpanded.closest('.habit-grid');
+            prevGrid.querySelectorAll('.habit-card').forEach(function(c) {
+              c.classList.remove('shrunk');
+            });
+            prevGrid.style.gridTemplateColumns = '';
+          }
+
+          currentExpanded = card;
+          card.classList.add('expanded');
+          cards.forEach(function(c) {
+            if (c !== card) c.classList.add('shrunk');
+          });
+
+          /* 6fr vs 0.7fr — expanded dominates, siblings stay readable (just name visible) */
+          var cols = [];
+          cards.forEach(function(c, i) {
+            cols.push(i === idx ? '6fr' : '0.7fr');
+          });
+          grid.style.gridTemplateColumns = cols.join(' ');
+        });
       });
-      grid.addEventListener('mouseenter', function() {
-        clearTimeout(closeTimeout);
+
+      grid.addEventListener('mouseleave', function() {
+        if (currentExpanded && currentExpanded.closest('.habit-grid') === grid) {
+          currentExpanded.classList.remove('expanded');
+          currentExpanded = null;
+          cards.forEach(function(c) { c.classList.remove('shrunk'); });
+          grid.style.gridTemplateColumns = '';
+        }
       });
     });
   })();
