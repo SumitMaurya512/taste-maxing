@@ -917,29 +917,21 @@
       color: #4A6700;
       font-weight: 600;
     }
-    /* Habit card hover-expand — pure grid, no position tricks */
+    /* Habit card hover-expand — GSAP-driven, no CSS transitions on grid/transform */
     .habit-grid {
-      transition: grid-template-columns 0.5s cubic-bezier(0.23,1,0.32,1);
+      /* NO transition here — GSAP handles gridTemplateColumns animation */
       align-items: start;
     }
     .habit-card {
       transform-origin: center top;
       overflow: hidden;
-      /* NOTE: NO opacity in transition — GSAP animates opacity on scroll-in via
-         gsap.from(anim-card, {opacity:0}) and CSS opacity transition fights it.
-         Shrunk opacity is handled via CSS class directly (instant or GSAP-controlled). */
-      transition: transform 0.4s cubic-bezier(0.23,1,0.32,1),
-                  padding 0.4s cubic-bezier(0.23,1,0.32,1),
-                  box-shadow 0.4s ease;
+      /* NO transition on transform or opacity — GSAP owns these.
+         Only padding/box-shadow get CSS transitions as GSAP doesn't
+         interpolate shorthand box-shadow as cleanly. */
+      transition: padding 0.6s cubic-bezier(0.23,1,0.32,1),
+                  box-shadow 0.6s ease;
     }
-    .habit-card.shrunk {
-      opacity: 0.4;
-      transform: scale(0.92);
-    }
-    .habit-card.shrunk .habit-card-desc,
-    .habit-card.shrunk .habit-card-meta {
-      display: none;
-    }
+    /* .habit-card.shrunk REMOVED — siblings never shrink, just get pushed */
     .habit-card-full {
       max-height: 0;
       overflow: hidden;
@@ -948,14 +940,13 @@
       line-height: 1.8;
       color: #333;
       margin-bottom: 0;
-      transition: max-height 0.55s cubic-bezier(0.23,1,0.32,1),
-                  opacity 0.35s ease 0.18s,
-                  margin 0.4s ease;
+      /* NO CSS transition — GSAP handles maxHeight/opacity on expand */
     }
     .habit-card.expanded {
       padding: 40px 44px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-      transform: rotate(0deg) scale(1.02);
+      /* NO scale — GSAP handles any transforms. scale(1.02) removed to avoid
+         fighting GSAP's xPercent/yPercent tracking */
       z-index: 10;
       position: relative;
     }
@@ -2946,48 +2937,143 @@
     });
   }
 
-  /* ========== 12b. HABIT CARD HOVER-EXPAND (pure grid reflow) ========== */
+  /* ========== 12b. HABIT CARD HOVER-EXPAND (GSAP grid push — siblings stay full size) ========== */
   (function initHabitHover() {
     var currentExpanded = null;
+    var currentTl = null;
 
     document.querySelectorAll('.habit-grid').forEach(function(grid) {
       var cards = grid.querySelectorAll('.habit-card');
+
+      /* Find the section heading just before this grid.
+         Structure: grid's parent has a .section-head div containing the h3.section-head-title.
+         Walk backward through siblings, then search inside each for the heading. */
+      var sectionHead = null;
+      var sib = grid.previousElementSibling;
+      while (sib) {
+        if (sib.classList.contains('section-head-title')) {
+          sectionHead = sib;
+          break;
+        }
+        var inner = sib.querySelector('.section-head-title');
+        if (inner) {
+          sectionHead = inner;
+          break;
+        }
+        sib = sib.previousElementSibling;
+      }
+
+      var enterTimeout = null; /* debounce flyover triggers */
 
       cards.forEach(function(card, idx) {
         card.addEventListener('mouseenter', function() {
           if (currentExpanded === card) return;
 
-          /* Reset previous */
-          if (currentExpanded) {
-            currentExpanded.classList.remove('expanded');
-            var prevGrid = currentExpanded.closest('.habit-grid');
-            prevGrid.querySelectorAll('.habit-card').forEach(function(c) {
-              c.classList.remove('shrunk');
+          /* 80ms delay — ignore fast flyovers */
+          clearTimeout(enterTimeout);
+          enterTimeout = setTimeout(function() {
+
+            /* Kill any in-flight animation */
+            if (currentTl) currentTl.kill();
+
+            /* Reset previous expanded card (instant CSS reset is fine — GSAP killed) */
+            if (currentExpanded) {
+              currentExpanded.classList.remove('expanded');
+              var prevGrid = currentExpanded.closest('.habit-grid');
+              var prevFull = currentExpanded.querySelector('.habit-card-full');
+              if (prevFull) gsap.set(prevFull, { maxHeight: 0, opacity: 0 });
+              /* If previous card was in a DIFFERENT grid, reset that grid immediately */
+              if (prevGrid !== grid) {
+                gsap.set(prevGrid, { gridTemplateColumns: 'repeat(3, 1fr)' });
+                var prevSib = prevGrid.previousElementSibling;
+                var prevHead = null;
+                while (prevSib) {
+                  if (prevSib.classList.contains('section-head-title')) { prevHead = prevSib; break; }
+                  var prevInner = prevSib.querySelector('.section-head-title');
+                  if (prevInner) { prevHead = prevInner; break; }
+                  prevSib = prevSib.previousElementSibling;
+                }
+                if (prevHead) gsap.set(prevHead, { y: 0 });
+              }
+            }
+
+            currentExpanded = card;
+            card.classList.add('expanded');
+
+            /* Build column string — expanded card gets 5fr, others stay 1fr (full size) */
+            var cols = [];
+            cards.forEach(function(c, i) {
+              cols.push(i === idx ? '5fr' : '1fr');
             });
-            prevGrid.style.gridTemplateColumns = '';
-          }
 
-          currentExpanded = card;
-          card.classList.add('expanded');
-          cards.forEach(function(c) {
-            if (c !== card) c.classList.add('shrunk');
-          });
+            currentTl = gsap.timeline();
 
-          /* 6fr vs 0.7fr — expanded dominates, siblings stay readable (just name visible) */
-          var cols = [];
-          cards.forEach(function(c, i) {
-            cols.push(i === idx ? '6fr' : '0.7fr');
-          });
-          grid.style.gridTemplateColumns = cols.join(' ');
+            /* 1. Smooth grid reflow — GSAP animates gridTemplateColumns buttery smooth */
+            currentTl.to(grid, {
+              gridTemplateColumns: cols.join(' '),
+              duration: 0.7,
+              ease: 'power2.out'
+            }, 0);
+
+            /* 2. Reveal the full description inside the expanded card */
+            var fullDesc = card.querySelector('.habit-card-full');
+            if (fullDesc) {
+              currentTl.to(fullDesc, {
+                maxHeight: 500,
+                opacity: 1,
+                duration: 0.65,
+                ease: 'power2.out'
+              }, 0.08);
+            }
+
+            /* 3. Pull the section heading up slightly to give the card room to breathe */
+            if (sectionHead) {
+              currentTl.to(sectionHead, {
+                y: -18,
+                duration: 0.55,
+                ease: 'power2.out'
+              }, 0);
+            }
+
+          }, 80);
         });
+
+        /* NOTE: No mouseleave on individual cards — the card-level leave fires when
+           moving from card A to card B (sibling), which would kill card B's pending
+           enter timeout. Only the grid mouseleave (leaving the entire group) resets. */
       });
 
       grid.addEventListener('mouseleave', function() {
+        clearTimeout(enterTimeout);
+
         if (currentExpanded && currentExpanded.closest('.habit-grid') === grid) {
+          if (currentTl) currentTl.kill();
+
           currentExpanded.classList.remove('expanded');
+          var fullDesc = currentExpanded.querySelector('.habit-card-full');
+
+          currentTl = gsap.timeline();
+
+          /* Restore grid to equal columns */
+          currentTl.to(grid, {
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            duration: 0.55,
+            ease: 'power2.inOut'
+          }, 0);
+
+          /* Immediately hide the expanded content (no transition on close) */
+          if (fullDesc) gsap.set(fullDesc, { maxHeight: 0, opacity: 0 });
+
+          /* Return heading to original position */
+          if (sectionHead) {
+            currentTl.to(sectionHead, {
+              y: 0,
+              duration: 0.45,
+              ease: 'power2.out'
+            }, 0);
+          }
+
           currentExpanded = null;
-          cards.forEach(function(c) { c.classList.remove('shrunk'); });
-          grid.style.gridTemplateColumns = '';
         }
       });
     });
