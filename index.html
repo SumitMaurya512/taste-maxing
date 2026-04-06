@@ -1,0 +1,2971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taste Maxing — Vortex Studios Workshop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #0A0A08;
+      --black-mid: #141210;
+      --black-card: #1A1815;
+      --cream: #F8F6F0;
+      --chalk: #FFFCF1;
+      --chalk-muted: #888880;
+      --ink: #0D0C0B;
+      --ink-muted: #6B6459;
+      --lime: #C8FF00;
+      --hot-red: #FF3D00;
+      --gold: #E8C84A;
+      --panel-w: 100vw;
+      --panel-h: 100dvh;
+    }
+
+    html { font-size: 16px; }
+    body {
+      background: var(--black);
+      color: var(--chalk);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-weight: 300;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* ========== GRAIN OVERLAY ========== */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 9998;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 128px 128px;
+    }
+
+    ::selection { background: var(--lime); color: var(--black); }
+    a { color: inherit; text-decoration: none; }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+
+    /* ========== CUSTOM CURSOR ========== */
+    .cursor-dot {
+      position: fixed;
+      width: 8px; height: 8px;
+      background: var(--lime);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 99999;
+      transform: translate(-50%, -50%);
+      mix-blend-mode: difference;
+    }
+    .cursor-ring {
+      position: fixed;
+      width: 40px; height: 40px;
+      border: 1.5px solid rgba(200, 255, 0, 0.5);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 99998;
+      transform: translate(-50%, -50%);
+      transition: width 0.3s cubic-bezier(0.23,1,0.32,1), height 0.3s cubic-bezier(0.23,1,0.32,1), border-color 0.3s;
+    }
+    .cursor-ring.hover {
+      width: 64px; height: 64px;
+      border-color: rgba(200, 255, 0, 0.8);
+    }
+
+    /* ========== PROGRESS BAR ========== */
+    .progress-track {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 3px;
+      background: rgba(255,255,255,0.06);
+      z-index: 9000;
+    }
+    .progress-fill {
+      height: 100%; width: 0%;
+      background: var(--lime);
+      transform-origin: left;
+    }
+
+    /* ========== PANEL COUNTER ========== */
+    .panel-counter {
+      position: fixed;
+      bottom: 32px; right: 40px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.15em;
+      color: var(--chalk-muted);
+      z-index: 9000;
+      display: flex; align-items: baseline; gap: 4px;
+    }
+    .panel-counter .current {
+      font-size: 20px;
+      color: var(--lime);
+    }
+
+    /* ========== NAV ========== */
+    .nav-hint {
+      position: fixed;
+      bottom: 32px; left: 40px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.25);
+      z-index: 9000;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-hint svg { opacity: 0.4; }
+
+    /* ========== HORIZONTAL SCROLL SYSTEM ========== */
+    .horizontal-wrapper {
+      width: 100%; overflow: hidden;
+    }
+    .horizontal-container {
+      display: flex;
+      width: max-content;
+      will-change: transform;
+    }
+
+    /* ========== PANEL BASE ========== */
+    .panel {
+      width: var(--panel-w);
+      height: var(--panel-h);
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .panel-inner {
+      width: 100%;
+      max-width: 1200px;
+      padding: 60px 80px;
+      position: relative;
+      z-index: 4;
+    }
+
+    /* ========== PANEL VARIANTS ========== */
+    .panel--dark { background: var(--black); }
+    .panel--cream {
+      background-color: var(--cream);
+      background-image:
+        linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+      background-size: 28px 28px;
+      color: var(--ink);
+    }
+    .panel--deep { background: var(--black-mid); }
+    .panel--exercise {
+      background: var(--black);
+      border-left: 4px solid var(--lime);
+    }
+
+    /* ========== FLOATING OBJECTS (PERSISTENT) ========== */
+    .float-persistent {
+      position: fixed;
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0.07;
+      mix-blend-mode: screen;
+    }
+    .float-p1 {
+      top: 8%; left: 12%;
+      width: 220px;
+      font-family: 'Syne'; font-weight: 800;
+      font-size: 180px; line-height: 1;
+      color: var(--lime);
+    }
+    .float-p2 {
+      bottom: 15%; right: 8%;
+      width: 160px; height: 160px;
+      border: 2px solid var(--lime);
+      border-radius: 50%;
+    }
+    .float-p3 {
+      top: 50%; right: 25%;
+      font-family: 'Caveat'; font-size: 48px;
+      color: var(--gold);
+      transform: rotate(-12deg);
+    }
+
+    /* ========== TICKER STRIPS ========== */
+    .ticker-strip {
+      position: fixed;
+      left: 0; width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 8;
+    }
+    .ticker-strip--top {
+      top: 0;
+      padding: 6px 0;
+      background: var(--lime);
+    }
+    .ticker-strip--bottom {
+      bottom: 0;
+      padding: 6px 0;
+      background: rgba(200,255,0,0.08);
+    }
+    .ticker-strip .ticker-scroll {
+      display: inline-flex;
+      animation: ticker-scroll 40s linear infinite;
+    }
+    .ticker-strip--bottom .ticker-scroll {
+      animation-duration: 55s;
+      animation-direction: reverse;
+    }
+    .ticker-strip span {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      padding: 0 24px;
+    }
+    .ticker-strip--top span { color: var(--black); }
+    .ticker-strip--bottom span { color: rgba(200,255,0,0.35); }
+
+    @keyframes ticker-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-33.333%); }
+    }
+
+    /* ========== TYPOGRAPHY ========== */
+    .t-display {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      line-height: 0.92;
+      letter-spacing: -0.03em;
+    }
+    .t-body {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 300;
+      line-height: 1.7;
+    }
+    .t-hand {
+      font-family: 'Caveat', cursive;
+      font-weight: 400;
+    }
+    .t-label {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+    }
+    .t-lime { color: var(--lime); }
+    .t-muted { color: var(--chalk-muted); }
+    .t-gold { color: var(--gold); }
+    .t-red { color: var(--hot-red); }
+    .t-ink { color: var(--ink); }
+
+    /* ========== TITLE PANEL ========== */
+    .title-word {
+      display: block;
+      font-size: clamp(64px, 14vw, 200px);
+      line-height: 0.88;
+    }
+    .title-word--taste { margin-left: -0.05em; }
+    .title-word--maxing {
+      margin-left: 0.15em;
+      -webkit-text-stroke: 2px var(--chalk);
+      color: transparent;
+    }
+    .title-sub {
+      margin-top: 32px;
+      font-size: clamp(14px, 1.4vw, 20px);
+      letter-spacing: 0.08em;
+      opacity: 0.6;
+    }
+    .title-meta {
+      position: absolute;
+      bottom: 80px; left: 80px;
+      display: flex; gap: 40px;
+    }
+    .title-meta-item {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--chalk-muted);
+    }
+    .title-meta-item strong {
+      display: block;
+      color: var(--chalk);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .title-float-img {
+      position: absolute;
+      border-radius: 8px;
+      filter: grayscale(0.2) brightness(1.05) contrast(1.05);
+      opacity: 0.9;
+    }
+    .title-float-1 {
+      top: 10%; right: 12%;
+      width: clamp(120px, 14vw, 220px);
+      transform: rotate(4deg);
+    }
+    .title-float-2 {
+      bottom: 18%; right: 28%;
+      width: clamp(100px, 11vw, 180px);
+      transform: rotate(-6deg);
+    }
+    .title-float-3 {
+      top: 35%; right: 38%;
+      width: clamp(80px, 9vw, 150px);
+      transform: rotate(2deg);
+    }
+    .title-quote-card {
+      position: absolute;
+      top: 12%; right: 5%;
+      width: clamp(200px, 22vw, 320px);
+      background: var(--chalk);
+      color: var(--ink);
+      padding: 20px;
+      font-family: 'DM Sans'; font-size: 13px;
+      font-style: italic; font-weight: 300;
+      line-height: 1.6;
+      transform: rotate(3deg);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    }
+    .title-quote-card cite {
+      display: block; margin-top: 12px;
+      font-size: 11px; font-style: normal;
+      font-weight: 500; letter-spacing: 0.05em;
+      color: var(--ink-muted);
+    }
+    .title-quote-card::before {
+      content: '';
+      position: absolute; top: -8px;
+      left: 30%; width: 60px; height: 16px;
+      background: rgba(200,255,0,0.5);
+      transform: rotate(-1deg);
+    }
+    .title-studio {
+      position: absolute;
+      top: 40px; left: 80px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .title-studio-dot {
+      width: 8px; height: 8px;
+      background: var(--lime);
+      border-radius: 50%;
+      animation: pulse-dot 2s ease infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+    .title-studio-name {
+      font-family: 'Syne'; font-weight: 700;
+      font-size: 11px; letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    /* ========== PROVOCATION PANEL ========== */
+    .provocation-text {
+      font-size: clamp(28px, 4.5vw, 72px);
+      max-width: 80%;
+      line-height: 1.15;
+    }
+    .provocation-text em {
+      font-style: normal;
+      color: var(--lime);
+    }
+    .provocation-hand {
+      display: block;
+      margin-top: 24px;
+      font-size: clamp(18px, 2.2vw, 36px);
+      color: var(--gold);
+      transform: rotate(-2deg);
+    }
+
+    /* ========== CHAPTER COVER ========== */
+    .chapter-num {
+      position: absolute;
+      right: -5%;
+      font-size: clamp(200px, 35vw, 500px);
+      line-height: 0.8;
+      color: rgba(200,255,0,0.04);
+      z-index: 1;
+    }
+    .chapter-label {
+      margin-bottom: 16px;
+    }
+    .chapter-title {
+      font-size: clamp(40px, 7vw, 110px);
+      max-width: 70%;
+      line-height: 0.95;
+    }
+    .chapter-sub {
+      margin-top: 20px;
+      font-size: clamp(14px, 1.3vw, 18px);
+      max-width: 50%;
+      opacity: 0.5;
+      line-height: 1.7;
+    }
+    .chapter-line {
+      width: 60px; height: 3px;
+      background: var(--lime);
+      margin-top: 32px;
+    }
+
+    /* ========== QUOTE PANEL ========== */
+    .quote-text {
+      font-size: clamp(22px, 3.2vw, 52px);
+      font-weight: 300;
+      line-height: 1.35;
+      max-width: 75%;
+      font-style: italic;
+    }
+    .quote-text .q-highlight {
+      font-style: normal;
+      color: var(--lime);
+      font-weight: 400;
+    }
+    .quote-source {
+      display: block;
+      margin-top: 32px;
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: var(--chalk-muted);
+    }
+    .quote-portrait {
+      position: absolute;
+      right: 6%; top: 50%;
+      transform: translateY(-50%) rotate(1.5deg);
+      width: clamp(280px, 30vw, 440px);
+      border-radius: 8px;
+      filter: grayscale(0.1) contrast(1.05) brightness(1.15);
+      opacity: 0.95;
+      border: 3px solid var(--hot-red);
+    }
+
+    /* ========== THINKER GRID ========== */
+    .thinker-grid-panel {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      width: 100%;
+    }
+    .thinker-mini {
+      background: var(--black-card);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: border-color 0.4s cubic-bezier(0.23,1,0.32,1), transform 0.4s cubic-bezier(0.23,1,0.32,1);
+      cursor: pointer;
+    }
+    .thinker-mini:hover {
+      border-color: rgba(200,255,0,0.2);
+      transform: translateY(-4px);
+    }
+    .thinker-mini-img-wrap {
+      width: 100%; height: 200px;
+      overflow: hidden;
+      position: relative;
+    }
+    .thinker-mini-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      filter: grayscale(0.3) contrast(1.1) brightness(1.05);
+      transition: filter 0.5s, transform 0.5s cubic-bezier(0.23,1,0.32,1);
+    }
+    .thinker-mini:hover .thinker-mini-img {
+      filter: grayscale(0) contrast(1.05) brightness(1.1);
+      transform: scale(1.05);
+    }
+    .thinker-mini-img-wrap::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 60px;
+      background: linear-gradient(transparent, var(--black-card));
+    }
+    .thinker-mini-body { padding: 16px 20px 20px; }
+    .thinker-mini-name {
+      font-family: 'Syne'; font-weight: 700;
+      font-size: 15px; letter-spacing: 0.03em;
+      margin-bottom: 8px;
+    }
+    .thinker-mini-quote {
+      font-size: 14px;
+      font-style: italic;
+      line-height: 1.65;
+      color: var(--chalk-muted);
+    }
+    .thinker-mini-source {
+      display: inline-block;
+      margin-top: 12px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--lime);
+      opacity: 0.7;
+    }
+
+    /* ========== INSIGHT / CONTRADICTION ========== */
+    .insight-panel {
+      display: flex;
+      gap: 80px;
+      align-items: flex-start;
+    }
+    .insight-side {
+      flex: 1;
+    }
+    .insight-side-label {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 100px;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .insight-side-label--a { background: rgba(200,255,0,0.12); color: var(--lime); }
+    .insight-side-label--b { background: rgba(232,200,74,0.12); color: var(--gold); }
+    .insight-side-name {
+      font-family: 'Syne'; font-weight: 800;
+      font-size: clamp(20px, 2.5vw, 36px);
+      margin-bottom: 12px;
+    }
+    .insight-side-text {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--chalk-muted);
+    }
+    .insight-vs {
+      font-family: 'Syne'; font-weight: 800;
+      font-size: 28px;
+      color: var(--hot-red);
+      align-self: center;
+      flex-shrink: 0;
+    }
+    .insight-conclusion {
+      margin-top: 48px;
+      padding: 24px 32px;
+      background: rgba(200,255,0,0.06);
+      border-left: 3px solid var(--lime);
+      border-radius: 0 8px 8px 0;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    /* ========== EXERCISE PANEL ========== */
+    .exercise-badge {
+      display: inline-flex;
+      align-items: center; gap: 8px;
+      padding: 6px 16px;
+      background: var(--lime);
+      color: var(--black);
+      border-radius: 100px;
+      font-family: 'Syne'; font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+    .exercise-title {
+      font-size: clamp(32px, 5vw, 72px);
+      line-height: 1;
+      margin-bottom: 24px;
+    }
+    .exercise-instruction {
+      font-size: clamp(16px, 1.6vw, 22px);
+      line-height: 1.8;
+      max-width: 65%;
+      color: var(--chalk-muted);
+      margin-bottom: 40px;
+    }
+    .exercise-instruction strong {
+      color: var(--chalk);
+      font-weight: 500;
+    }
+    .exercise-rules {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+    .exercise-rules li {
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: 14px;
+      color: var(--chalk-muted);
+    }
+    .exercise-rules li::before {
+      content: '';
+      display: block;
+      width: 6px; height: 6px;
+      margin-top: 8px;
+      background: var(--lime);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .timer-display {
+      display: inline-flex;
+      align-items: center; gap: 16px;
+      font-family: 'Syne'; font-weight: 800;
+      font-size: clamp(36px, 5vw, 72px);
+      color: var(--lime);
+      cursor: pointer;
+      user-select: none;
+    }
+    .timer-display .timer-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--chalk-muted);
+    }
+    .timer-display.running { animation: timer-pulse 1s ease infinite; }
+    .timer-display.done { color: var(--hot-red); animation: none; }
+    @keyframes timer-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* ========== TAKEAWAY PANEL ========== */
+    .takeaway-text {
+      font-size: clamp(28px, 4.5vw, 68px);
+      line-height: 1.15;
+      max-width: 80%;
+      text-align: center;
+    }
+    .takeaway-text .tw-em {
+      color: var(--lime);
+    }
+    .takeaway-hand {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      font-size: clamp(16px, 1.8vw, 28px);
+      color: var(--gold);
+      transform: rotate(-1.5deg);
+    }
+    .panel--takeaway {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    /* ========== PLATFORM CARDS ========== */
+    .platform-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      width: 100%;
+    }
+    .platform-card {
+      background: var(--black-card);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: border-color 0.4s, transform 0.4s cubic-bezier(0.23,1,0.32,1);
+      cursor: pointer;
+    }
+    .platform-card:hover {
+      border-color: rgba(200,255,0,0.15);
+      transform: translateY(-4px);
+    }
+    .platform-card-img {
+      width: 100%; height: 150px;
+      object-fit: cover;
+      filter: grayscale(0.15) brightness(1.05) contrast(1.05);
+      transition: filter 0.5s;
+    }
+    .platform-card:hover .platform-card-img {
+      filter: grayscale(0) brightness(1.1);
+    }
+    .platform-card-body { padding: 16px; }
+    .platform-card-name {
+      font-family: 'Syne'; font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .platform-card-url {
+      font-size: 11px;
+      color: var(--lime);
+      letter-spacing: 0.05em;
+      opacity: 0.7;
+    }
+    .platform-card-desc {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--chalk-muted);
+      margin-top: 8px;
+    }
+    .platform-card-tag {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 3px 10px;
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 100px;
+      color: var(--chalk-muted);
+    }
+
+    /* ========== INSTAGRAM HANDLES ========== */
+    .insta-featured {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 36px;
+    }
+    .insta-featured-card {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: border-color 0.4s, transform 0.4s cubic-bezier(0.23,1,0.32,1);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .insta-featured-card:hover {
+      border-color: rgba(200,255,0,0.25);
+      transform: translateY(-4px);
+    }
+    .insta-featured-card img {
+      width: 100%;
+      height: 320px;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+      filter: brightness(0.9) contrast(1.05);
+      transition: filter 0.4s;
+    }
+    .insta-featured-card:hover img {
+      filter: brightness(1) contrast(1.1);
+    }
+    .insta-featured-handle {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 20px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.9));
+      font-family: 'Syne'; font-weight: 700;
+      font-size: 18px;
+      color: var(--chalk);
+      letter-spacing: 0.02em;
+    }
+    .insta-featured-desc {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--chalk-muted);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+    .insta-cloud {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 12px;
+      margin-top: 28px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 4px;
+    }
+    .insta-cloud::-webkit-scrollbar { display: none; }
+    .insta-handle {
+      font-family: 'Syne'; font-weight: 700;
+      font-size: 13px;
+      padding: 6px 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 100px;
+      color: var(--chalk-muted);
+      transition: all 0.3s cubic-bezier(0.23,1,0.32,1);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .insta-handle:hover {
+      color: var(--lime);
+      border-color: var(--lime);
+      background: rgba(200,255,0,0.06);
+    }
+
+    /* ========== CINEMA CARDS ========== */
+    .cinema-row {
+      display: flex; gap: 24px;
+      width: 100%;
+    }
+    .cinema-card {
+      flex: 1;
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--black-card);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .cinema-card-img {
+      width: 100%; height: 180px;
+      object-fit: cover;
+      filter: grayscale(0.15) brightness(1.05);
+      transition: filter 0.5s;
+    }
+    .cinema-card:hover .cinema-card-img { filter: grayscale(0) brightness(1.1); }
+    .cinema-card-body { padding: 20px; }
+    .cinema-card-name {
+      font-family: 'Syne'; font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+    .cinema-card-url {
+      font-size: 11px; color: var(--lime);
+      letter-spacing: 0.05em; opacity: 0.7;
+    }
+    .cinema-card-desc {
+      font-size: 14px; line-height: 1.65;
+      color: var(--chalk-muted); margin-top: 10px;
+    }
+
+    /* ========== YOUTUBE LIST ========== */
+    .yt-list { list-style: none; }
+    .yt-item {
+      display: flex; align-items: flex-start; gap: 20px;
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .yt-item:last-child { border-bottom: none; }
+    .yt-num {
+      font-family: 'Syne'; font-weight: 800;
+      font-size: 24px;
+      color: rgba(200,255,0,0.2);
+      flex-shrink: 0;
+      width: 40px;
+    }
+    .yt-name {
+      font-family: 'Syne'; font-weight: 700;
+      font-size: 15px;
+      display: block;
+      margin-bottom: 4px;
+      transition: color 0.3s;
+    }
+    .yt-name:hover { color: var(--lime); }
+    .yt-desc {
+      font-size: 14px; line-height: 1.65;
+      color: var(--chalk-muted);
+    }
+
+    /* ========== STICKY / HABIT CARDS ========== */
+    .habit-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      width: 100%;
+    }
+    .habit-card {
+      background: var(--cream);
+      color: var(--ink);
+      padding: 24px;
+      border-radius: 2px;
+      transform: rotate(var(--rot, 0deg));
+      box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+      position: relative;
+    }
+    .habit-card::before {
+      content: '';
+      position: absolute; top: -6px;
+      left: 35%; width: 50px; height: 14px;
+      background: rgba(200,255,0,0.45);
+      transform: rotate(-1deg);
+    }
+    .habit-card-name {
+      font-family: 'Syne'; font-weight: 800;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .habit-card-url {
+      font-size: 11px;
+      color: var(--ink-muted);
+      margin-bottom: 10px;
+      display: block;
+    }
+    .habit-card-desc {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--ink-muted);
+      margin-bottom: 14px;
+    }
+    .habit-card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .habit-card-tag {
+      padding: 3px 10px;
+      background: rgba(0,0,0,0.06);
+      border-radius: 100px;
+    }
+    .habit-card-freq {
+      padding: 3px 10px;
+      background: rgba(74,103,0,0.1);
+      border-radius: 100px;
+      color: #4A6700;
+      font-weight: 600;
+    }
+
+    /* ========== RESOURCE LIST ========== */
+    .resource-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      width: 100%;
+    }
+    .resource-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      transition: background 0.3s;
+    }
+    .resource-row:hover { background: rgba(255,255,255,0.04); }
+    .panel--cream .resource-row:hover { background: rgba(0,0,0,0.04); }
+    .res-num {
+      font-family: 'Syne'; font-weight: 800;
+      font-size: 16px;
+      color: rgba(200,255,0,0.3);
+      flex-shrink: 0;
+      width: 32px;
+    }
+    .panel--cream .res-num { color: rgba(74,103,0,0.25); }
+    .res-name {
+      font-family: 'Syne'; font-weight: 700;
+      font-size: 14px;
+    }
+    .res-desc {
+      font-size: 13px;
+      color: var(--chalk-muted);
+      margin-top: 2px;
+    }
+    .panel--cream .res-desc { color: var(--ink-muted); }
+
+    /* ========== RECAP PANEL ========== */
+    .recap-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 16px;
+      width: 100%;
+    }
+    .recap-item {
+      text-align: center;
+      padding: 24px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .recap-item-num {
+      font-family: 'Syne'; font-weight: 800;
+      font-size: 32px;
+      color: var(--lime);
+      opacity: 0.4;
+      margin-bottom: 8px;
+    }
+    .recap-item-label {
+      font-family: 'Syne'; font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .recap-item-desc {
+      font-size: 11px;
+      color: var(--chalk-muted);
+      line-height: 1.5;
+    }
+
+    /* ========== THANK YOU ========== */
+    .thankyou-title {
+      font-size: clamp(48px, 10vw, 160px);
+      line-height: 0.9;
+      text-align: center;
+    }
+    .thankyou-sub {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      color: var(--chalk-muted);
+    }
+    .thankyou-credit {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 0.1em;
+      white-space: nowrap;
+    }
+
+    /* ========== SECTION HEADING IN CONTENT PANELS ========== */
+    .section-head {
+      margin-bottom: 32px;
+    }
+    .section-head-label {
+      margin-bottom: 8px;
+    }
+    .section-head-title {
+      font-size: clamp(24px, 3.5vw, 48px);
+      line-height: 1.05;
+    }
+    .panel--cream .section-head-title { color: var(--ink); }
+    .section-head-sub {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--chalk-muted);
+    }
+    .panel--cream .section-head-sub { color: var(--ink-muted); }
+
+    /* ========== CHAPTER NAV BAR ========== */
+    .chapter-nav {
+      position: fixed;
+      right: 32px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 9500;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      align-items: flex-end;
+    }
+    .chapter-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.23,1,0.32,1);
+    }
+    .chapter-nav-label {
+      font-family: 'Syne'; font-weight: 700;
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.2);
+      opacity: 0;
+      transform: translateX(8px);
+      transition: all 0.3s cubic-bezier(0.23,1,0.32,1);
+      white-space: nowrap;
+    }
+    .chapter-nav-item:hover .chapter-nav-label,
+    .chapter-nav-item.active .chapter-nav-label {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    .chapter-nav-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      transition: all 0.4s cubic-bezier(0.23,1,0.32,1);
+      flex-shrink: 0;
+    }
+    .chapter-nav-item:hover .chapter-nav-dot {
+      background: rgba(200,255,0,0.5);
+      transform: scale(1.3);
+    }
+    .chapter-nav-item.active .chapter-nav-dot {
+      background: var(--lime);
+      transform: scale(1.5);
+      box-shadow: 0 0 12px rgba(200,255,0,0.4);
+    }
+
+    /* ========== EXPAND MODAL ========== */
+    .expand-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 20000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s cubic-bezier(0.23,1,0.32,1);
+      cursor: pointer;
+    }
+    .expand-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .expand-content {
+      background: var(--black-card);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      max-width: 720px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 0;
+      cursor: default;
+      transform: scale(0.92) translateY(20px);
+      transition: transform 0.5s cubic-bezier(0.23,1,0.32,1);
+    }
+    .expand-overlay.open .expand-content {
+      transform: scale(1) translateY(0);
+    }
+    .expand-content::-webkit-scrollbar { width: 3px; }
+    .expand-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .expand-img {
+      width: 100%;
+      height: 320px;
+      object-fit: cover;
+      border-radius: 20px 20px 0 0;
+    }
+    .expand-body {
+      padding: 32px 36px 36px;
+    }
+    .expand-name {
+      font-family: 'Syne'; font-weight: 800;
+      font-size: 24px;
+      margin-bottom: 6px;
+    }
+    .expand-url {
+      font-size: 13px;
+      color: var(--lime);
+      letter-spacing: 0.05em;
+      display: block;
+      margin-bottom: 16px;
+    }
+    .expand-quote, .expand-desc {
+      font-size: 16px;
+      line-height: 1.75;
+      color: var(--chalk-muted);
+      margin-bottom: 16px;
+    }
+    .expand-quote { font-style: italic; }
+    .expand-tag {
+      display: inline-block;
+      padding: 5px 14px;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 100px;
+      color: var(--chalk-muted);
+    }
+    .expand-close-hint {
+      position: absolute;
+      top: 24px; right: 28px;
+      font-family: 'Syne'; font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    /* ========== SCATTERED MIXED MEDIA ELEMENTS ========== */
+    .scatter {
+      position: absolute;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .scatter-sticker {
+      background: var(--lime);
+      color: var(--black);
+      font-family: 'Syne'; font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 10px 22px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .scatter-outline {
+      border: 3px dashed rgba(200,255,0,0.25);
+      border-radius: 50%;
+      width: 160px; height: 160px;
+    }
+    .scatter-arrow {
+      font-size: 52px;
+      color: var(--hot-red);
+      opacity: 0.55;
+    }
+    .scatter-star {
+      font-size: 48px;
+      color: var(--gold);
+      opacity: 0.5;
+    }
+    .scatter-note {
+      font-family: 'Caveat'; font-size: 26px;
+      color: var(--lime);
+      opacity: 0.6;
+      transform: rotate(var(--rot, -5deg));
+      white-space: nowrap;
+    }
+    .scatter-paper {
+      background: var(--chalk);
+      padding: 14px 24px;
+      font-family: 'Caveat'; font-size: 22px;
+      color: var(--ink);
+      transform: rotate(var(--rot, 2deg));
+      box-shadow: 3px 5px 18px rgba(0,0,0,0.35);
+    }
+    .scatter-cross {
+      width: 44px; height: 44px;
+      position: relative;
+    }
+    .scatter-cross::before, .scatter-cross::after {
+      content: '';
+      position: absolute;
+      background: rgba(200,255,0,0.2);
+    }
+    .scatter-cross::before {
+      width: 100%; height: 3px;
+      top: 50%; left: 0;
+    }
+    .scatter-cross::after {
+      width: 3px; height: 100%;
+      left: 50%; top: 0;
+    }
+    .scatter-tape {
+      width: 110px; height: 32px;
+      background: rgba(200,255,0,0.4);
+      transform: rotate(var(--rot, -3deg));
+    }
+    .scatter-circle {
+      border: 3px solid var(--hot-red);
+      border-radius: 50%;
+      opacity: 0.3;
+    }
+    .scatter-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--lime);
+      opacity: 0.4;
+    }
+    /* ========== PAPER CUTOUT OUTLINE — Kevin Luna hand-drawn style ========== */
+    /* Rough imperfect borders via SVG filter + thick offset shadows */
+    .thinker-mini-img,
+    .platform-card-img,
+    .cinema-card-img {
+      border: 5px solid var(--hot-red);
+      filter: url(#papercut) grayscale(0.15) brightness(1.05) contrast(1.05);
+      box-shadow:
+        6px 5px 0 0 rgba(255,61,0,0.3),
+        -4px 6px 0 0 rgba(200,255,0,0.15),
+        0 0 0 9px rgba(255,61,0,0.06),
+        inset 0 0 8px rgba(0,0,0,0.2);
+    }
+    .quote-portrait {
+      border-width: 5px;
+      filter: url(#papercut) grayscale(0.1) contrast(1.05) brightness(1.15);
+      box-shadow:
+        8px 6px 0 0 rgba(255,61,0,0.35),
+        -5px 7px 0 0 rgba(200,255,0,0.2),
+        0 0 0 10px rgba(255,61,0,0.07),
+        inset 0 0 12px rgba(0,0,0,0.15);
+    }
+    .title-float-img {
+      border: 5px solid var(--hot-red) !important;
+      filter: url(#papercut) grayscale(0.2) brightness(1.05) contrast(1.05) !important;
+      box-shadow:
+        5px 4px 0 0 rgba(255,61,0,0.3),
+        -3px 5px 0 0 rgba(200,255,0,0.15);
+    }
+    /* Alternate colors for visual variety */
+    .thinker-mini:nth-child(2n) .thinker-mini-img,
+    .platform-card:nth-child(2n) .platform-card-img,
+    .cinema-card:nth-child(2n) .cinema-card-img {
+      border-color: var(--lime);
+      box-shadow:
+        -5px 6px 0 0 rgba(200,255,0,0.35),
+        6px -4px 0 0 rgba(232,200,74,0.2),
+        0 0 0 9px rgba(200,255,0,0.06),
+        inset 0 0 8px rgba(0,0,0,0.2);
+    }
+    .thinker-mini:nth-child(3n) .thinker-mini-img,
+    .platform-card:nth-child(3n) .platform-card-img {
+      border-color: var(--gold);
+      box-shadow:
+        5px -6px 0 0 rgba(232,200,74,0.35),
+        -6px 4px 0 0 rgba(255,61,0,0.2),
+        0 0 0 9px rgba(232,200,74,0.06),
+        inset 0 0 8px rgba(0,0,0,0.2);
+    }
+    .title-float-img:nth-child(odd) {
+      border-color: var(--lime) !important;
+    }
+    .title-float-img:nth-child(3n) {
+      border-color: var(--gold) !important;
+    }
+    /* Expand modal image — NO cutout */
+    .expand-img { border: none !important; box-shadow: none !important; filter: none !important; }
+
+    /* ========== 3D PERSPECTIVE on panels ========== */
+    .panel { perspective: 800px; transform-style: preserve-3d; }
+    .scatter, .title-float-img, .quote-portrait, .thinker-mini, .thinker-mini-img,
+    .platform-card, .platform-card-img, .cinema-card, .cinema-card-img,
+    .habit-card, .exercise-badge, .timer-display, .insta-handle, .yt-item,
+    .resource-row, .insight-vs, .recap-item { transform-style: preserve-3d; }
+
+    /* ========== UTILITY ========== */
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+    .mt-32 { margin-top: 32px; }
+    .mt-48 { margin-top: 48px; }
+    .gap-40 { gap: 40px; }
+    .flex-col { display: flex; flex-direction: column; }
+
+    /* ========== LOADER + PLUS WIPE ========== */
+    .loader {
+      position: fixed; inset: 0;
+      background: var(--black);
+      z-index: 99991;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .loader-word {
+      font-family: 'Syne'; font-weight: 800;
+      font-size: clamp(32px, 6vw, 72px);
+      letter-spacing: 0.3em;
+      line-height: 1.2;
+      display: block;
+    }
+    .loader-word:last-child { color: var(--lime); }
+    .loader-star {
+      width: 52px; height: 52px;
+      position: relative;
+      margin: 28px auto 14px;
+      /* Will be switched to position:absolute when text fades,
+         so expansion is from true center of viewport */
+    }
+    .loader-star::before,
+    .loader-star::after {
+      content: '';
+      position: absolute;
+      background: var(--lime);
+      border-radius: 3px;
+    }
+    .loader-star::before {
+      width: 30%; height: 100%;
+      left: 35%; top: 0;
+    }
+    .loader-star::after {
+      width: 100%; height: 30%;
+      left: 0; top: 35%;
+    }
+    .loader-sub {
+      font-family: 'Caveat'; font-size: clamp(14px, 2vw, 22px);
+      color: var(--chalk-muted); margin-top: 4px; opacity: 0;
+      letter-spacing: 0.08em;
+    }
+    /* greenPlus + revealWipe removed — mask applied directly to loader */
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 768px) {
+      .panel-inner { padding: 40px 24px; }
+      .thinker-grid-panel { grid-template-columns: 1fr; }
+      .habit-grid { grid-template-columns: 1fr; }
+      .cinema-row { flex-direction: column; }
+      .recap-grid { grid-template-columns: repeat(3, 1fr); }
+      .platform-row { grid-template-columns: 1fr; }
+      .insight-panel { flex-direction: column; gap: 32px; }
+      .insight-vs { align-self: flex-start; }
+      .cursor-dot, .cursor-ring { display: none; }
+      body { cursor: auto; }
+      .title-quote-card { display: none; }
+      .title-float-img { display: none; }
+      .chapter-nav { display: none; }
+      .scatter { display: none; }
+      .chapter-num { font-size: 40vw; }
+      .nav-hint { display: none; }
+    }
+
+    /* ========== FILM GRAIN OVERLAY ========== */
+    .grain-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      pointer-events: none;
+      filter: url(#grain);
+      opacity: 0.04;
+      mix-blend-mode: overlay;
+    }
+
+    /* ========== PREFERS REDUCED MOTION ========== */
+    @media (prefers-reduced-motion: reduce) {
+      .loader { display: none; }
+      .ticker-strip .ticker-scroll { animation: none; }
+      .grain-overlay { display: none; }
+      * { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== SVG FILTERS (paper cutout roughness) ==================== -->
+<svg style="position:absolute;width:0;height:0;" aria-hidden="true">
+  <defs>
+    <filter id="papercut" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="4" seed="2" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- ==================== LOADER ==================== -->
+<div class="loader" id="loader">
+  <span class="loader-word">VORTEX</span>
+  <span class="loader-word">STUDIOS</span>
+  <div class="loader-star" id="loaderStar"></div>
+  <span class="loader-sub">presents</span>
+</div>
+
+<!-- Green plus that expands to fill screen -->
+<!-- greenPlus removed — loaderStar expands directly -->
+
+<!-- SVG mask — userSpaceOnUse so the plus stays square regardless of viewport aspect ratio -->
+<svg id="revealSvg" style="position:absolute;width:0;height:0">
+  <defs>
+    <mask id="plusRevealMask" maskContentUnits="userSpaceOnUse">
+      <rect id="maskBg" fill="white"/>
+      <g id="plusHole">
+        <rect class="plus-v" fill="black"/>
+        <rect class="plus-h" fill="black"/>
+      </g>
+    </mask>
+  </defs>
+</svg>
+
+<!-- ==================== CURSOR ==================== -->
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- ==================== PROGRESS ==================== -->
+<div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- ==================== PANEL COUNTER ==================== -->
+<div class="panel-counter">
+  <span class="current" id="panelCurrent">01</span>
+  <span>/ </span>
+  <span id="panelTotal">35</span>
+</div>
+
+<!-- ==================== NAV HINT ==================== -->
+<div class="nav-hint">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+  <span>SCROLL TO NAVIGATE</span>
+</div>
+
+<!-- ==================== CHAPTER NAV ==================== -->
+<nav class="chapter-nav" id="chapterNav">
+  <div class="chapter-nav-item active" data-target="1"><span class="chapter-nav-label">TITLE</span><div class="chapter-nav-dot"></div></div>
+  <div class="chapter-nav-item" data-target="3"><span class="chapter-nav-label">01 THE GAP</span><div class="chapter-nav-dot"></div></div>
+  <div class="chapter-nav-item" data-target="8"><span class="chapter-nav-label">02 WHAT IS TASTE</span><div class="chapter-nav-dot"></div></div>
+  <div class="chapter-nav-item" data-target="14"><span class="chapter-nav-label">03 WHERE TO LOOK</span><div class="chapter-nav-dot"></div></div>
+  <div class="chapter-nav-item" data-target="19"><span class="chapter-nav-label">04 CINEMATIC EYE</span><div class="chapter-nav-dot"></div></div>
+  <div class="chapter-nav-item" data-target="24"><span class="chapter-nav-label">05 DAILY PRACTICE</span><div class="chapter-nav-dot"></div></div>
+  <div class="chapter-nav-item" data-target="29"><span class="chapter-nav-label">06 YOUR STACK</span><div class="chapter-nav-dot"></div></div>
+  <div class="chapter-nav-item" data-target="35"><span class="chapter-nav-label">THANK YOU</span><div class="chapter-nav-dot"></div></div>
+</nav>
+
+<!-- ==================== EXPAND MODAL ==================== -->
+<div class="expand-overlay" id="expandOverlay">
+  <span class="expand-close-hint" style="pointer-events:none;">CLICK OUTSIDE TO CLOSE</span>
+  <div class="expand-content" id="expandContent">
+    <img class="expand-img" id="expandImg" src="" alt="">
+    <div class="expand-body">
+      <div class="expand-name" id="expandName"></div>
+      <span class="expand-url" id="expandUrl"></span>
+      <p class="expand-quote" id="expandQuote"></p>
+      <p class="expand-desc" id="expandDesc"></p>
+      <span class="expand-tag" id="expandTag"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FLOATING PERSISTENT OBJECTS ==================== -->
+<div class="float-persistent float-p1" aria-hidden="true">&copy;</div>
+<div class="float-persistent float-p2" aria-hidden="true"></div>
+<div class="float-persistent float-p3 t-hand" aria-hidden="true">taste is a muscle</div>
+
+<!-- ==================== TICKER STRIPS ==================== -->
+<div class="ticker-strip ticker-strip--top">
+  <div class="ticker-scroll">
+    <span>TRIGGER</span><span>THEORY</span><span>TERRAIN</span><span>TRAINING</span><span>TRANSFER</span><span>TOMORROW</span>
+    <span>TRIGGER</span><span>THEORY</span><span>TERRAIN</span><span>TRAINING</span><span>TRANSFER</span><span>TOMORROW</span>
+    <span>TRIGGER</span><span>THEORY</span><span>TERRAIN</span><span>TRAINING</span><span>TRANSFER</span><span>TOMORROW</span>
+  </div>
+</div>
+<div class="ticker-strip ticker-strip--bottom">
+  <div class="ticker-scroll">
+    <span>IRA GLASS</span><span>RICK RUBIN</span><span>ELIZABETH GOODSPEED</span><span>AUSTIN KLEON</span><span>PAUL RAND</span><span>JOHN BERGER</span>
+    <span>IRA GLASS</span><span>RICK RUBIN</span><span>ELIZABETH GOODSPEED</span><span>AUSTIN KLEON</span><span>PAUL RAND</span><span>JOHN BERGER</span>
+    <span>IRA GLASS</span><span>RICK RUBIN</span><span>ELIZABETH GOODSPEED</span><span>AUSTIN KLEON</span><span>PAUL RAND</span><span>JOHN BERGER</span>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- ==================== HORIZONTAL PANELS ===================== -->
+<!-- ============================================================ -->
+<div class="horizontal-wrapper" id="horizontalWrapper">
+<div class="horizontal-container" id="horizontalContainer">
+
+  <!-- ========== 01. TITLE ========== -->
+  <section class="panel panel--dark" data-panel="1">
+    <div class="title-studio">
+      <div class="title-studio-dot"></div>
+      <span class="title-studio-name t-label">Vortex Studios</span>
+    </div>
+    <div class="panel-inner">
+      <div class="t-display title-word title-word--taste anim-title">TASTE</div>
+      <div class="t-display title-word title-word--maxing anim-title">MAXING</div>
+      <p class="title-sub t-body">A Workshop on Developing Aesthetic Judgment</p>
+    </div>
+    <div class="title-meta">
+      <div class="title-meta-item"><strong>Format</strong>Workshop</div>
+      <div class="title-meta-item"><strong>Duration</strong>3 Hours</div>
+      <div class="title-meta-item"><strong>Date</strong>April 2026</div>
+      <div class="title-meta-item"><strong>By</strong>Vortex Studios</div>
+    </div>
+    <img class="title-float-img title-float-1" src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=300&q=80" alt="">
+    <img class="title-float-img title-float-2" src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=250&q=80" alt="">
+    <img class="title-float-img title-float-3" src="https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=200&q=80" alt="">
+    <div class="title-quote-card anim-float">
+      <blockquote>"Nobody tells this to people who are beginners... all of us who do creative work, we get into it because we have good taste. But there is a gap."</blockquote>
+      <cite>-- Ira Glass</cite>
+    </div>
+    <!-- Scattered mixed-media elements -->
+    <div class="scatter scatter-sticker" style="top:18%;left:62%;" aria-hidden="true">WORKSHOP 2026</div>
+    <div class="scatter scatter-note" style="bottom:28%;right:15%;--rot:-8deg;" aria-hidden="true">develop your eye &rarr;</div>
+    <div class="scatter scatter-star" style="top:25%;left:45%;" aria-hidden="true">&#10022;</div>
+    <div class="scatter scatter-star" style="bottom:35%;left:30%;" aria-hidden="true">&#10038;</div>
+    <div class="scatter scatter-cross" style="top:15%;right:40%;" aria-hidden="true"></div>
+    <div class="scatter scatter-cross" style="bottom:22%;left:55%;" aria-hidden="true"></div>
+    <div class="scatter scatter-circle" style="top:30%;right:18%;width:110px;height:110px;" aria-hidden="true"></div>
+    <div class="scatter scatter-tape" style="top:55%;left:25%;--rot:5deg;" aria-hidden="true"></div>
+    <div class="scatter scatter-dot" style="top:40%;left:48%;" aria-hidden="true"></div>
+    <div class="scatter scatter-dot" style="top:65%;right:35%;" aria-hidden="true"></div>
+    <div class="scatter scatter-dot" style="bottom:40%;left:20%;" aria-hidden="true"></div>
+    <div class="scatter scatter-paper" style="bottom:15%;left:8%;--rot:-4deg;" aria-hidden="true">see like your heroes</div>
+    <div class="scatter scatter-outline" style="bottom:30%;right:45%;" aria-hidden="true"></div>
+    <div class="scatter scatter-arrow" style="top:60%;left:40%;" aria-hidden="true">&#10132;</div>
+  </section>
+
+  <!-- ========== 02. PROVOCATION ========== -->
+  <section class="panel panel--dark" data-panel="2">
+    <div class="panel-inner">
+      <p class="t-display provocation-text anim-words">Everyone in this room has <em>taste</em>. Most of you can't explain <em>why</em>.</p>
+      <span class="t-hand provocation-hand anim-hand">...that's what we're here to fix.</span>
+    </div>
+    <div class="scatter scatter-star" style="top:20%;right:15%;" aria-hidden="true">&#10022;</div>
+    <div class="scatter scatter-cross" style="bottom:25%;left:12%;" aria-hidden="true"></div>
+    <div class="scatter scatter-note" style="top:15%;left:8%;--rot:3deg;" aria-hidden="true">can you?</div>
+    <div class="scatter scatter-circle" style="bottom:20%;right:20%;width:90px;height:90px;" aria-hidden="true"></div>
+  </section>
+
+  <!-- ========== 03. CHAPTER 1 COVER — THE GAP ========== -->
+  <section class="panel panel--dark" data-panel="3" data-chapter="1">
+    <div class="chapter-num t-display anim-num">01</div>
+    <div class="panel-inner">
+      <span class="t-label t-lime chapter-label anim-label">Chapter One</span>
+      <h2 class="t-display chapter-title anim-title">THE GAP</h2>
+      <p class="t-body chapter-sub anim-sub">Your taste exceeds your ability. This is not a flaw. It's the engine.</p>
+      <div class="chapter-line anim-line"></div>
+    </div>
+    <div class="scatter scatter-sticker" style="top:12%;right:8%;" aria-hidden="true">TRIGGER</div>
+    <div class="scatter scatter-note" style="bottom:18%;left:15%;--rot:-6deg;" aria-hidden="true">close the gap &darr;</div>
+    <div class="scatter scatter-star" style="top:35%;right:25%;" aria-hidden="true">&#10038;</div>
+    <div class="scatter scatter-tape" style="bottom:30%;right:12%;--rot:7deg;" aria-hidden="true"></div>
+    <div class="scatter scatter-paper" style="top:22%;right:20%;--rot:3deg;" aria-hidden="true">volume is the answer</div>
+  </section>
+
+  <!-- ========== 04. IRA GLASS QUOTE ========== -->
+  <section class="panel panel--deep" data-panel="4">
+    <img class="quote-portrait" src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Ira_Glass_This_American_Life-09_%28cropped%29.jpg/500px-Ira_Glass_This_American_Life-09_%28cropped%29.jpg" alt="Ira Glass">
+    <div class="panel-inner">
+      <p class="t-body quote-text anim-words">"Your taste is still <span class="q-highlight">killer</span>... what you're making is kind of a <span class="q-highlight">disappointment</span> to you. A lot of people never get past this phase. They quit."</p>
+      <span class="quote-source">-- Ira Glass</span>
+    </div>
+  </section>
+
+  <!-- ========== 05. THE GAP EXPLAINED ========== -->
+  <section class="panel panel--dark" data-panel="5">
+    <div class="panel-inner" style="max-width:900px;">
+      <span class="t-label t-lime anim-label">The Taste-Skill Gap</span>
+      <h3 class="t-display anim-title" style="font-size:clamp(24px,3.5vw,48px);margin:16px 0 24px;">This gap is <span class="t-lime">normal</span>. It's what got you into creative work.</h3>
+      <div class="t-body anim-body" style="display:flex;gap:48px;color:var(--chalk-muted);font-size:15px;line-height:1.8;">
+        <div style="flex:1;">
+          <p>You can recognise brilliant work. You know when something is extraordinary. You feel it in your body — that pang of "this is good" when you see a perfectly graded film, a typeface used exactly right, a building that makes you stop.</p>
+          <p style="margin-top:16px;">But when you sit down to make something, it falls short. Your hands haven't caught up with your eyes.</p>
+        </div>
+        <div style="flex:1;">
+          <p>This is not imposter syndrome. It's the natural state of anyone whose perception outpaces their craft.</p>
+          <p style="margin-top:16px;color:var(--lime);font-weight:400;">The only way to close the gap: <strong style="color:var(--chalk);">volume.</strong> Make a huge amount of work. Put yourself on a deadline. Do it every day.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 06. EXERCISE — THE GAP TEST ========== -->
+  <section class="panel panel--exercise" data-panel="6" data-timer="300">
+    <div class="panel-inner">
+      <div class="exercise-badge">EXERCISE</div>
+      <h2 class="t-display exercise-title anim-title">The Gap Test</h2>
+      <p class="exercise-instruction anim-body"><strong>Pick 3 pieces of work you love</strong> — from any field. Design, film, architecture, food, music. Pull them up on your phone or write them down. Now: try to explain <strong>exactly why</strong> each one is good. Not "it feels right." Specifics.</p>
+      <ul class="exercise-rules anim-body">
+        <li>"I like the colour palette" is not enough — which colours? Why those together?</li>
+        <li>"The composition is nice" is banned — what's in the foreground? Where does your eye go?</li>
+        <li>When you struggle to explain — you've found the gap.</li>
+      </ul>
+      <div class="timer-display" onclick="toggleTimer(this)" data-seconds="300">
+        <span class="timer-value">5:00</span>
+        <span class="timer-label">TAP TO START</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 07. TAKEAWAY 1 ========== -->
+  <section class="panel panel--dark panel--takeaway" data-panel="7">
+    <div>
+      <p class="t-display takeaway-text anim-title">The gap between your taste and your ability is <span class="tw-em">the engine</span>.</p>
+      <span class="t-hand takeaway-hand anim-hand">Don't run from it. Use it.</span>
+    </div>
+  </section>
+
+  <!-- ========== 08. CHAPTER 2 COVER — WHAT IS TASTE? ========== -->
+  <section class="panel panel--dark" data-panel="8" data-chapter="2">
+    <div class="chapter-num t-display anim-num">02</div>
+    <div class="panel-inner">
+      <span class="t-label t-lime chapter-label anim-label">Chapter Two</span>
+      <h2 class="t-display chapter-title anim-title">WHAT IS<br>TASTE?</h2>
+      <p class="t-body chapter-sub anim-sub">Six thinkers. Six definitions. One contradiction that changes everything.</p>
+      <div class="chapter-line anim-line"></div>
+    </div>
+  </section>
+
+  <!-- ========== 09. GOODSPEED QUOTE ========== -->
+  <section class="panel panel--deep" data-panel="9">
+    <img class="quote-portrait" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80" alt="Elizabeth Goodspeed">
+    <div class="panel-inner">
+      <p class="t-body quote-text anim-words">"Developing taste is not so unlike going to <span class="q-highlight">therapy</span>; it's an inefficient, time-consuming process that mostly entails looking inward and identifying whatever already <span class="q-highlight">moves you</span>."</p>
+      <span class="quote-source">-- Elizabeth Goodspeed, It's Nice That, 2024</span>
+    </div>
+  </section>
+
+  <!-- ========== 10. SIX THINKERS ========== -->
+  <section class="panel panel--dark" data-panel="10">
+    <div class="panel-inner" style="max-width:1100px;">
+      <div class="section-head">
+        <span class="t-label t-lime section-head-label anim-label">The Thinkers</span>
+        <h3 class="t-display section-head-title anim-title" style="font-size:clamp(22px,3vw,40px);">Six perspectives on building aesthetic judgment</h3>
+      </div>
+      <div class="thinker-grid-panel">
+        <div class="thinker-mini anim-card" data-expand="thinker" data-name="Ira Glass" data-quote="Your taste is still killer... what you're making is kind of a disappointment to you. A lot of people never get past this phase. They quit. Most people I know who do interesting, creative work went through years of this." data-source="themarginalian.org" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Ira_Glass_This_American_Life-09_%28cropped%29.jpg/800px-Ira_Glass_This_American_Life-09_%28cropped%29.jpg">
+          <div class="thinker-mini-img-wrap"><img class="thinker-mini-img" src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Ira_Glass_This_American_Life-09_%28cropped%29.jpg/500px-Ira_Glass_This_American_Life-09_%28cropped%29.jpg" alt="Ira Glass"></div>
+          <div class="thinker-mini-body"><div class="thinker-mini-name">Ira Glass</div>
+          <p class="thinker-mini-quote">"Your taste is still killer... what you're making is kind of a disappointment to you."</p>
+          <span class="thinker-mini-source">themarginalian.org</span></div>
+        </div>
+        <div class="thinker-mini anim-card" data-expand="thinker" data-name="Rick Rubin" data-quote="The ability to look deeply is the root of creativity. To see past the ordinary and mundane. The act of looking is an act of creation. You are actively choosing to behold. That choice is an expression of taste." data-source="sachinrekhi.com" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/RickRubinSept09.jpg/800px-RickRubinSept09.jpg">
+          <div class="thinker-mini-img-wrap"><img class="thinker-mini-img" src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/RickRubinSept09.jpg/500px-RickRubinSept09.jpg" alt="Rick Rubin"></div>
+          <div class="thinker-mini-body"><div class="thinker-mini-name">Rick Rubin</div>
+          <p class="thinker-mini-quote">"The ability to look deeply is the root of creativity. To see past the ordinary and mundane."</p>
+          <span class="thinker-mini-source">sachinrekhi.com</span></div>
+        </div>
+        <div class="thinker-mini anim-card" data-expand="thinker" data-name="E. Goodspeed" data-quote="Developing taste is not so unlike going to therapy; it's an inefficient, time-consuming process that mostly entails looking inward and identifying whatever already moves you. Taste requires you to trust your instincts even when they don't align with current trends. It's an exercise in vulnerability." data-source="itsnicethat.com" data-img="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800&q=80">
+          <div class="thinker-mini-img-wrap"><img class="thinker-mini-img" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&q=80" alt="E. Goodspeed"></div>
+          <div class="thinker-mini-body"><div class="thinker-mini-name">E. Goodspeed</div>
+          <p class="thinker-mini-quote">"Taste requires you to trust your instincts even when they don't align with current trends."</p>
+          <span class="thinker-mini-source">itsnicethat.com</span></div>
+        </div>
+        <div class="thinker-mini anim-card" data-expand="thinker" data-name="Austin Kleon" data-quote="You don't have to look like your heroes. You want to see like your heroes. Steal like an artist: every new idea is just a mashup of one or more previous ideas. The art of looking is the art of paying attention." data-source="austinkleon.com" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Austin_Kleon_2015.jpg/800px-Austin_Kleon_2015.jpg">
+          <div class="thinker-mini-img-wrap"><img class="thinker-mini-img" src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Austin_Kleon_2015.jpg/500px-Austin_Kleon_2015.jpg" alt="Austin Kleon"></div>
+          <div class="thinker-mini-body"><div class="thinker-mini-name">Austin Kleon</div>
+          <p class="thinker-mini-quote">"You don't have to look like your heroes. You want to see like your heroes."</p>
+          <span class="thinker-mini-source">austinkleon.com</span></div>
+        </div>
+        <div class="thinker-mini anim-card" data-expand="thinker" data-name="Paul Rand" data-quote="Catering to bad taste merely perpetuates mediocrity and denies the reader one of the most easily accessible means for aesthetic development and visualemic enrichment. Design is the silent ambassador of your brand." data-source="paulrand.design" data-img="https://upload.wikimedia.org/wikipedia/commons/b/bb/Paul_rand_loc.jpg">
+          <div class="thinker-mini-img-wrap"><img class="thinker-mini-img" src="https://upload.wikimedia.org/wikipedia/commons/b/bb/Paul_rand_loc.jpg" alt="Paul Rand"></div>
+          <div class="thinker-mini-body"><div class="thinker-mini-name">Paul Rand</div>
+          <p class="thinker-mini-quote">"Catering to bad taste merely perpetuates mediocrity."</p>
+          <span class="thinker-mini-source">paulrand.design</span></div>
+        </div>
+        <div class="thinker-mini anim-card" data-expand="thinker" data-name="John Berger" data-quote="We never look at just one thing; we are always looking at the relation between things and ourselves. Seeing comes before words. The child looks and recognises before it can speak. The way we see things is affected by what we know or what we believe." data-source="ways-of-seeing.com" data-img="https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/John_Berger-2009_%286%29.jpg/800px-John_Berger-2009_%286%29.jpg">
+          <div class="thinker-mini-img-wrap"><img class="thinker-mini-img" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/John_Berger-2009_%286%29.jpg/500px-John_Berger-2009_%286%29.jpg" alt="John Berger"></div>
+          <div class="thinker-mini-body"><div class="thinker-mini-name">John Berger</div>
+          <p class="thinker-mini-quote">"We never look at just one thing; we are always looking at the relation between things and ourselves."</p>
+          <span class="thinker-mini-source">ways-of-seeing.com</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 11. THE CONTRADICTION ========== -->
+  <section class="panel panel--dark" data-panel="11">
+    <div class="panel-inner" style="max-width:1000px;">
+      <span class="t-label t-gold anim-label" style="margin-bottom:32px;display:block;">The Workshop Contradiction</span>
+      <div class="insight-panel">
+        <div class="insight-side anim-card">
+          <span class="insight-side-label insight-side-label--a">Position A</span>
+          <div class="insight-side-name">John Berger</div>
+          <p class="insight-side-text">"Taste is social conditioning, not personal development. You see what your culture trained you to see."</p>
+        </div>
+        <div class="insight-vs anim-card">VS</div>
+        <div class="insight-side anim-card">
+          <span class="insight-side-label insight-side-label--b">Position B</span>
+          <div class="insight-side-name">Goodspeed + Housen</div>
+          <p class="insight-side-text">"Taste is absolutely learnable and trainable. It develops in measurable stages, like any skill."</p>
+        </div>
+      </div>
+      <div class="insight-conclusion anim-body">
+        <strong>Both are true.</strong> You are shaped by what surrounds you — which means you can <em>deliberately shape your surroundings</em>. That's the entire premise of this workshop.
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 12. EXERCISE — ARTICULATION ========== -->
+  <section class="panel panel--exercise" data-panel="12" data-timer="600">
+    <div class="panel-inner">
+      <div class="exercise-badge">EXERCISE</div>
+      <h2 class="t-display exercise-title anim-title">Articulation<br>Challenge</h2>
+      <p class="exercise-instruction anim-body">I'll show you <strong>two pieces of work</strong>. Write down exactly why one is better than the other. <strong>"It feels right" is banned.</strong> You must use specific observations — colour, composition, weight, rhythm, negative space, contrast.</p>
+      <ul class="exercise-rules anim-body">
+        <li>Write at least 3 sentences for each piece</li>
+        <li>Name the specific element that creates the difference</li>
+        <li>If you can't articulate it — you've found your next growth edge</li>
+      </ul>
+      <div class="timer-display" onclick="toggleTimer(this)" data-seconds="600">
+        <span class="timer-value">10:00</span>
+        <span class="timer-label">TAP TO START</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 13. TAKEAWAY 2 ========== -->
+  <section class="panel panel--dark panel--takeaway" data-panel="13">
+    <div>
+      <p class="t-display takeaway-text anim-title">You can <span class="tw-em">design your environment</span> to shape your taste.</p>
+      <span class="t-hand takeaway-hand anim-hand">That's what the next chapters are about.</span>
+    </div>
+  </section>
+
+  <!-- ========== 14. CHAPTER 3 COVER — WHERE TO LOOK ========== -->
+  <section class="panel panel--dark" data-panel="14" data-chapter="3">
+    <div class="chapter-num t-display anim-num">03</div>
+    <div class="panel-inner">
+      <span class="t-label t-lime chapter-label anim-label">Chapter Three</span>
+      <h2 class="t-display chapter-title anim-title">WHERE<br>TO LOOK</h2>
+      <p class="t-body chapter-sub anim-sub">Five platforms that are signal-high, algorithm-free. The raw material for your taste environment.</p>
+      <div class="chapter-line anim-line"></div>
+    </div>
+  </section>
+
+  <!-- ========== 15. PLATFORMS ========== -->
+  <section class="panel panel--dark" data-panel="15">
+    <div class="panel-inner" style="max-width:1100px;">
+      <div class="section-head">
+        <span class="t-label t-lime section-head-label anim-label">Platforms</span>
+        <h3 class="t-display section-head-title anim-title" style="font-size:clamp(22px,3vw,40px);">Your new visual diet</h3>
+      </div>
+      <div class="platform-row">
+        <div class="platform-card anim-card" data-expand="platform" data-name="Cosmos" data-url="cosmos.so" data-desc="Apple App of the Year 2025. Zero ads, zero algorithm. Used by Nike, A24, Chanel, Apple design teams. Hex-code colour search lets you find references by exact colour. The quiet Pinterest for flow states — no comments, no likes, just pure visual collection." data-tag="Personal Library" data-img="https://cdn.sanity.io/images/ca81n2nu/production/aa69ab096c497987a79890058d800614ff095cd8-1200x630.png">
+          <img class="platform-card-img" src="https://cdn.sanity.io/images/ca81n2nu/production/aa69ab096c497987a79890058d800614ff095cd8-1200x630.png" alt="Cosmos">
+          <div class="platform-card-body">
+            <div class="platform-card-name">Cosmos</div>
+            <a class="platform-card-url" href="https://cosmos.so" target="_blank" rel="noopener">cosmos.so</a>
+            <p class="platform-card-desc">Apple App of the Year 2025. Zero ads, zero algorithm. Used by Nike, A24, Chanel. Hex-code colour search.</p>
+            <span class="platform-card-tag">Personal Library</span>
+          </div>
+        </div>
+        <div class="platform-card anim-card" data-expand="platform" data-name="Are.na" data-url="are.na" data-desc="No likes, no shares, no algorithm — ever. Academic-meets-creative culture. Build slow-burn research archives that compound over years. Used by MoMA researchers, independent publishers, and experimental designers. Think of it as a communal library card catalogue for the internet." data-tag="Research Archive" data-img="https://www.are.na/android-chrome-512x512.png">
+          <img class="platform-card-img" src="https://www.are.na/android-chrome-512x512.png" alt="Are.na">
+          <div class="platform-card-body">
+            <div class="platform-card-name">Are.na</div>
+            <a class="platform-card-url" href="https://www.are.na" target="_blank" rel="noopener">are.na</a>
+            <p class="platform-card-desc">No likes, no shares, no algorithm — ever. Build slow-burn research archives that compound over years.</p>
+            <span class="platform-card-tag">Research Archive</span>
+          </div>
+        </div>
+        <div class="platform-card anim-card" data-expand="platform" data-name="mymind" data-url="mymind.com" data-desc="Entirely private. AI auto-tags everything. Semantic search by mood — search 'warm sunset feeling' and it finds your saves that match. Zero taxonomy overhead. Your visual subconscious, organised. No social layer, no sharing, no followers. Just you and your collected references." data-tag="Private Collection" data-img="https://mymind.com/wp-content/uploads/2023/05/Mymind_2023_F-1024x538.jpg">
+          <img class="platform-card-img" src="https://mymind.com/wp-content/uploads/2023/05/Mymind_2023_F-1024x538.jpg" alt="mymind">
+          <div class="platform-card-body">
+            <div class="platform-card-name">mymind</div>
+            <a class="platform-card-url" href="https://mymind.com" target="_blank" rel="noopener">mymind.com</a>
+            <p class="platform-card-desc">Entirely private. AI auto-tags everything. Semantic search by mood. Your visual subconscious, organised.</p>
+            <span class="platform-card-tag">Private Collection</span>
+          </div>
+        </div>
+        <div class="platform-card anim-card" data-expand="platform" data-name="Frameset" data-url="frameset.app" data-desc="350,000+ frames from commercials, films, music videos. Search by director, DP, or production designer. The professional film reference database. Used by agencies like Buck, ManvsMachine, and major production houses for moodboarding and pitch decks." data-tag="Film Reference" data-img="https://d13mryl9xv19vu.cloudfront.net/e0ff9b79-21e5-4f8b-9b75-d0f7d368a0c0_sm.avif">
+          <img class="platform-card-img" src="https://d13mryl9xv19vu.cloudfront.net/e0ff9b79-21e5-4f8b-9b75-d0f7d368a0c0_sm.avif" alt="Frameset">
+          <div class="platform-card-body">
+            <div class="platform-card-name">Frameset</div>
+            <a class="platform-card-url" href="https://frameset.app" target="_blank" rel="noopener">frameset.app</a>
+            <p class="platform-card-desc">350,000+ frames from commercials, films, music videos. Search by director, DP, or production designer.</p>
+            <span class="platform-card-tag">Film Reference</span>
+          </div>
+        </div>
+        <div class="platform-card anim-card" data-expand="platform" data-name="Savee" data-url="savee.it" data-desc="Ad-free, high-signal curation. Designer community with notably higher taste bar than Pinterest. One-click browser extension captures anything. Used by senior designers at Pentagram, Collins, and other top studios as their primary reference tool." data-tag="Curated Design" data-img="https://m.savee-cdn.com/img/default-og-image.jpg?1775421411144">
+          <img class="platform-card-img" src="https://m.savee-cdn.com/img/default-og-image.jpg?1775421411144" alt="Savee">
+          <div class="platform-card-body">
+            <div class="platform-card-name">Savee</div>
+            <a class="platform-card-url" href="https://savee.it" target="_blank" rel="noopener">savee.it</a>
+            <p class="platform-card-desc">Ad-free, high-signal curation. Notably higher taste bar than Pinterest. One-click browser extension.</p>
+            <span class="platform-card-tag">Curated Design</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 16. INSTAGRAM ========== -->
+  <section class="panel panel--dark" data-panel="16">
+    <div class="panel-inner" style="max-width:1100px;">
+      <div class="section-head">
+        <span class="t-label t-lime section-head-label anim-label">Instagram</span>
+        <h3 class="t-display section-head-title anim-title" style="font-size:clamp(22px,3vw,40px);">Accounts worth following</h3>
+        <p class="section-head-sub anim-body">Curators, cinematographers, and studios. High signal, low noise.</p>
+      </div>
+      <div class="insta-featured mt-32">
+        <a href="https://www.instagram.com/eyecannndy/" target="_blank" rel="noopener" class="insta-featured-card anim-body">
+          <img src="img/insta-eyecannndy.png" alt="@eyecannndy grid">
+          <div class="insta-featured-handle">@eyecannndy<div class="insta-featured-desc">Visual candy — curated frames, art direction, cinema</div></div>
+        </a>
+        <a href="https://www.instagram.com/frame.set/" target="_blank" rel="noopener" class="insta-featured-card anim-body">
+          <img src="img/insta-frameset.png" alt="@frame.set grid">
+          <div class="insta-featured-handle">@frame.set<div class="insta-featured-desc">Cinematic frames — composition & color grading lessons</div></div>
+        </a>
+        <a href="https://www.instagram.com/goodadsmatter/" target="_blank" rel="noopener" class="insta-featured-card anim-body">
+          <img src="img/insta-goodadsmatter.png" alt="@goodadsmatter grid">
+          <div class="insta-featured-handle">@goodadsmatter<div class="insta-featured-desc">Best advertising work — commercial creativity with taste</div></div>
+        </a>
+      </div>
+      <div class="insta-cloud mt-32">
+        <a href="https://www.instagram.com/eyecannndy/" target="_blank" rel="noopener" class="insta-handle anim-body" data-expand="insta" data-name="@eyecannndy" data-desc="Pure visual candy — curated aesthetic imagery across design, architecture, fashion, and art. A high-signal feed that trains your eye to recognize beauty in every discipline. Essential daily dose of visual inspiration.">@eyecannndy</a>
+        <a href="https://www.instagram.com/frame.set/" target="_blank" rel="noopener" class="insta-handle anim-body" data-expand="insta" data-name="@frame.set" data-desc="Curated cinematic frames from the best films. Every post is a composition and color grading lesson. Study how directors and DPs use light, framing, and palette to tell stories in a single still.">@frame.set</a>
+        <a href="https://www.instagram.com/goodadsmatter/" target="_blank" rel="noopener" class="insta-handle anim-body" data-expand="insta" data-name="@goodadsmatter" data-desc="Only the best advertising makes it here. Print, digital, OOH — campaigns that demonstrate real creative thinking. Study how the best brands communicate visually. A masterclass in commercial creativity with taste.">@goodadsmatter</a>
+        <a href="https://www.instagram.com/itsnicethat/" target="_blank" rel="noopener" class="insta-handle anim-body" data-expand="insta" data-name="@itsnicethat" data-desc="The editorial voice of contemporary creative culture. Covers graphic design, illustration, photography, art direction, and emerging talent. Their captions actually teach — not just 'look at this' but 'here's WHY this matters.' 1M+ followers.">@itsnicethat</a>
+        <a href="https://www.instagram.com/designboom/" target="_blank" rel="noopener" class="insta-handle anim-body" data-expand="insta" data-name="@designboom" data-desc="The world's first digital architecture and design magazine. 4M+ followers. Architecture, art, technology, and design with a global lens — from avant-garde installations to everyday product design.">@designboom</a>
+        <a href="https://www.instagram.com/behance/" target="_blank" rel="noopener" class="insta-handle anim-body" data-expand="insta" data-name="@behance" data-desc="Adobe's creative showcase — the best work from millions of creatives worldwide. Branding, typography, illustration, motion design, photography. Essential for seeing what's happening NOW in design.">@behance</a>
+        <a href="https://www.instagram.com/eyeondesign/" target="_blank" rel="noopener" class="insta-handle anim-body" data-expand="insta" data-name="@eyeondesign" data-desc="AIGA's design journalism platform. Goes deeper than inspiration — interviews, essays, and critical thinking about design's role in culture. Understand WHY design matters, not just what looks good.">@eyeondesign</a>
+        <a href="https://www.instagram.com/creativeboom/" target="_blank" rel="noopener" class="insta-handle anim-body" data-expand="insta" data-name="@creativeboom" data-desc="Daily creative inspiration with substance. Features graphic design, illustration, photography, and brand identity — always with context about the designer's process. The captions are as valuable as the visuals.">@creativeboom</a>
+        <a href="https://www.instagram.com/stefansagmeister/" target="_blank" rel="noopener" class="insta-handle anim-body" data-expand="insta" data-name="@stefansagmeister" data-desc="Legendary graphic designer. Provocative, boundary-pushing work. Personal experiments, visual essays on beauty, and raw creative process. If design can be philosophy, Sagmeister proves it.">@stefansagmeister</a>
+        <a href="https://www.instagram.com/jessicawalsh/" target="_blank" rel="noopener" class="insta-handle anim-body" data-expand="insta" data-name="@jessicawalsh" data-desc="Creative director and founder of &Walsh. Bold, colorful, maximalist — typography, branding, editorial, and art direction. Essential for building a visual vocabulary beyond minimalism.">@jessicawalsh</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 17. EXERCISE — INPUT AUDIT ========== -->
+  <section class="panel panel--exercise" data-panel="17" data-timer="480">
+    <div class="panel-inner">
+      <div class="exercise-badge">EXERCISE</div>
+      <h2 class="t-display exercise-title anim-title">Input Audit</h2>
+      <p class="exercise-instruction anim-body"><strong>List everything you consumed visually this week.</strong> Instagram, YouTube, films, websites, books, physical spaces. Be honest — include the garbage. Now circle what was <strong>deliberate</strong> vs what was <strong>algorithmic</strong>.</p>
+      <ul class="exercise-rules anim-body">
+        <li>Count the ratio: deliberate inputs vs algorithmic feed</li>
+        <li>What fields are missing? (Film? Architecture? Type? Nature?)</li>
+        <li>What decade are all your references from? (If all 2020s — that's a closed loop)</li>
+      </ul>
+      <div class="timer-display" onclick="toggleTimer(this)" data-seconds="480">
+        <span class="timer-value">8:00</span>
+        <span class="timer-label">TAP TO START</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 18. TAKEAWAY 3 ========== -->
+  <section class="panel panel--dark panel--takeaway" data-panel="18">
+    <div>
+      <p class="t-display takeaway-text anim-title"><span class="tw-em">Signal</span> in, signal out.<br>Garbage in, garbage out.</p>
+      <span class="t-hand takeaway-hand anim-hand">Curate your inputs like your career depends on it. It does.</span>
+    </div>
+  </section>
+
+  <!-- ========== 19. CHAPTER 4 COVER — CINEMATIC EYE ========== -->
+  <section class="panel panel--dark" data-panel="19" data-chapter="4">
+    <div class="chapter-num t-display anim-num">04</div>
+    <div class="panel-inner">
+      <span class="t-label t-lime chapter-label anim-label">Chapter Four</span>
+      <h2 class="t-display chapter-title anim-title">THE<br>CINEMATIC<br>EYE</h2>
+      <p class="t-body chapter-sub anim-sub">How to watch films, motion, and video like a practitioner — not a consumer.</p>
+      <div class="chapter-line anim-line"></div>
+    </div>
+  </section>
+
+  <!-- ========== 20. FILM PLATFORMS ========== -->
+  <section class="panel panel--dark" data-panel="20">
+    <div class="panel-inner" style="max-width:1100px;">
+      <div class="section-head">
+        <span class="t-label t-lime section-head-label anim-label">Motion &amp; Film</span>
+        <h3 class="t-display section-head-title anim-title" style="font-size:clamp(22px,3vw,40px);">Training your cinematic eye</h3>
+      </div>
+      <div class="cinema-row mt-24">
+        <div class="cinema-card anim-card" data-expand="cinema" data-name="Vimeo Staff Picks" data-url="vimeo.com/channels/staffpicks" data-desc="Editorially selected. Not algorithmic. Where Buck, ManvsMachine, Psyop post career work. The quality ceiling for motion reference. Human curators, not engagement algorithms. If you only follow one motion reference source, this is it." data-img="https://f.vimeocdn.com/cms/images/vimeo-logo-black.png">
+          <img class="cinema-card-img" src="https://f.vimeocdn.com/cms/images/vimeo-logo-black.png" alt="Vimeo">
+          <div class="cinema-card-body">
+            <div class="cinema-card-name">Vimeo Staff Picks</div>
+            <a class="cinema-card-url" href="https://vimeo.com/channels/staffpicks" target="_blank" rel="noopener">vimeo.com/channels/staffpicks</a>
+            <p class="cinema-card-desc">Editorially selected. Not algorithmic. Where Buck, ManvsMachine, Psyop post career work. The quality ceiling for motion reference.</p>
+          </div>
+        </div>
+        <div class="cinema-card anim-card" data-expand="cinema" data-name="MUBI" data-url="mubi.com" data-desc="30-film rolling library, replaced daily. Auteur-heavy. Forces deliberate watching. The Notebook section is free film criticism. One of the few platforms that treats film as art, not content. Their editorial voice is worth following even without the subscription." data-img="https://assets.mubicdn.net/splash/volver.jpg">
+          <img class="cinema-card-img" src="https://assets.mubicdn.net/splash/volver.jpg" alt="MUBI">
+          <div class="cinema-card-body">
+            <div class="cinema-card-name">MUBI</div>
+            <a class="cinema-card-url" href="https://mubi.com" target="_blank" rel="noopener">mubi.com</a>
+            <p class="cinema-card-desc">30-film rolling library, replaced daily. Auteur-heavy. Forces deliberate watching. The Notebook section is free film criticism.</p>
+          </div>
+        </div>
+        <div class="cinema-card anim-card" data-expand="cinema" data-name="Short of the Week" data-url="shortoftheweek.com" data-desc="Editorially curated shorts with critical notes. Festival-circuit quality. Each film comes with context: why it was selected, what technique to notice, who the filmmaker is. A masterclass in learning to watch." data-img="https://static.shortoftheweek.com/images/screenshot.jpg">
+          <img class="cinema-card-img" src="https://static.shortoftheweek.com/images/screenshot.jpg" alt="Short of the Week">
+          <div class="cinema-card-body">
+            <div class="cinema-card-name">Short of the Week</div>
+            <a class="cinema-card-url" href="https://shortoftheweek.com" target="_blank" rel="noopener">shortoftheweek.com</a>
+            <p class="cinema-card-desc">Editorially curated shorts with critical notes. Festival-circuit quality.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 21. YOUTUBE ========== -->
+  <section class="panel panel--dark" data-panel="21">
+    <div class="panel-inner" style="max-width:800px;">
+      <div class="section-head">
+        <span class="t-label t-lime section-head-label anim-label">YouTube</span>
+        <h3 class="t-display section-head-title anim-title" style="font-size:clamp(22px,3vw,40px);">Four channels. Required watching.</h3>
+      </div>
+      <ul class="yt-list mt-24">
+        <li class="yt-item anim-card" data-expand="youtube" data-name="Every Frame a Painting" data-desc="28 video essays that changed how a generation watches film. Tony Zhou's meticulous analysis of cinematography, editing, and visual storytelling. Start with 'How Does an Editor Think and Feel?' and 'David Fincher — And the Other Way is Wrong.' Required watching before studying Kubrick, Miyazaki, or Kurosawa." data-url="https://www.youtube.com/@everyframeapainting">
+          <span class="yt-num">01</span>
+          <div><span class="yt-name"><a href="https://www.youtube.com/@everyframeapainting" target="_blank" rel="noopener">Every Frame a Painting</a></span><p class="yt-desc">28 essays, cinematography analysis, required before studying Kubrick or Miyazaki.</p></div>
+        </li>
+        <li class="yt-item anim-card" data-expand="youtube" data-name="Nerdwriter1" data-desc="Evan Puschak's weekly video essays on art, film, music, and culture. The strength is accessibility — he explains why specific images work without requiring technical background. Great entry point for non-practitioners who want to understand visual language. Start with his pieces on Spielberg and Hitchcock." data-url="https://www.youtube.com/@Nerdwriter1">
+          <span class="yt-num">02</span>
+          <div><span class="yt-name"><a href="https://www.youtube.com/@Nerdwriter1" target="_blank" rel="noopener">Nerdwriter1</a></span><p class="yt-desc">Why specific images work, for non-practitioners.</p></div>
+        </li>
+        <li class="yt-item anim-card" data-expand="youtube" data-name="Wolfcrow" data-desc="The most technically rigorous free cinematography education on the internet. Sareesh Sudhakaran breaks down camera movement, lens choice, lighting ratios, and colour science with mathematical precision. Not glamorous, but the densest learning-per-minute of any channel on this list." data-url="https://www.youtube.com/@wolfcrow">
+          <span class="yt-num">03</span>
+          <div><span class="yt-name"><a href="https://www.youtube.com/@wolfcrow" target="_blank" rel="noopener">Wolfcrow</a></span><p class="yt-desc">Most technically rigorous free cinematography resource.</p></div>
+        </li>
+        <li class="yt-item anim-card" data-expand="youtube" data-name="StudioBinder" data-desc="StudioBinder's 'Director's Trademarks' series profiles the signature techniques of master filmmakers — Wes Anderson's symmetry, Denis Villeneuve's scale, Spike Lee's double dolly. Each episode is a masterclass in recognising and articulating directorial vision. Also excellent for shot composition analysis." data-url="https://www.youtube.com/@StudioBinder">
+          <span class="yt-num">04</span>
+          <div><span class="yt-name"><a href="https://www.youtube.com/@StudioBinder" target="_blank" rel="noopener">StudioBinder</a></span><p class="yt-desc">Director's Trademarks series.</p></div>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========== 22. EXERCISE — 2 MIN LOOK ========== -->
+  <section class="panel panel--exercise" data-panel="22" data-timer="720">
+    <div class="panel-inner">
+      <div class="exercise-badge">EXERCISE</div>
+      <h2 class="t-display exercise-title anim-title">The 2-Minute<br>Look</h2>
+      <p class="exercise-instruction anim-body">I'll play <strong>2 minutes of a film</strong>. Watch it normally. Write what you noticed.<br><br>Then I'll teach you <strong>how to look</strong>. We'll watch the same clip again. Write what you notice <strong>now</strong>.</p>
+      <ul class="exercise-rules anim-body">
+        <li>First pass: gut reaction, general impression</li>
+        <li>After instruction: light direction, lens choice, blocking, colour grading, sound design</li>
+        <li>Compare your two lists — the delta is the skill you just gained</li>
+      </ul>
+      <div class="timer-display" onclick="toggleTimer(this)" data-seconds="720">
+        <span class="timer-value">12:00</span>
+        <span class="timer-label">TAP TO START</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 23. TAKEAWAY 4 ========== -->
+  <section class="panel panel--dark panel--takeaway" data-panel="23">
+    <div>
+      <p class="t-display takeaway-text anim-title">Once you learn to <span class="tw-em">see</span>, you can never <span class="tw-em">unsee</span>.</p>
+      <span class="t-hand takeaway-hand anim-hand">That's not a burden. It's a superpower.</span>
+    </div>
+  </section>
+
+  <!-- ========== 24. CHAPTER 5 COVER — DAILY PRACTICE ========== -->
+  <section class="panel panel--dark" data-panel="24" data-chapter="5">
+    <div class="chapter-num t-display anim-num">05</div>
+    <div class="panel-inner">
+      <span class="t-label t-lime chapter-label anim-label">Chapter Five</span>
+      <h2 class="t-display chapter-title anim-title">DAILY<br>PRACTICE</h2>
+      <p class="t-body chapter-sub anim-sub">Taste compounds like interest. But only if you practice. Six habits, six frequencies.</p>
+      <div class="chapter-line anim-line"></div>
+    </div>
+  </section>
+
+  <!-- ========== 25. HABITS 1-3 ========== -->
+  <section class="panel panel--cream" data-panel="25">
+    <div class="panel-inner" style="max-width:1100px;">
+      <div class="section-head">
+        <span class="t-label anim-label" style="color:var(--ink-muted);">Habits &amp; Systems</span>
+        <h3 class="t-display section-head-title anim-title" style="font-size:clamp(22px,3vw,40px);">Practices that compound</h3>
+      </div>
+      <div class="habit-grid mt-24">
+        <div class="habit-card anim-card" style="--rot:-1.8deg" data-expand="habit" data-name="Morning Pages" data-url="juliacameronlive.com" data-desc="3 pages, longhand, stream of consciousness, every morning. From Julia Cameron's The Artist's Way. 12 weeks of morning pages reveals your actual taste vs. your stated taste. The practice works because it bypasses your inner critic — you write before the editorial voice wakes up. Most people discover they care about completely different things than they thought." data-tag="Creative Ritual" data-freq="Daily / 20min">
+          <div class="habit-card-name">Morning Pages</div>
+          <span class="habit-card-url">juliacameronlive.com</span>
+          <p class="habit-card-desc">3 pages, longhand, stream of consciousness, every morning. 12 weeks reveals actual taste vs. stated taste.</p>
+          <div class="habit-card-meta">
+            <span class="habit-card-tag">Creative Ritual</span>
+            <span class="habit-card-freq">Daily / 20min</span>
+          </div>
+        </div>
+        <div class="habit-card anim-card" style="--rot:1.2deg" data-expand="habit" data-name="The Logbook" data-url="austinkleon.com" data-desc="One page of daily lists: what you looked at, read, watched, noticed. Austin Kleon's practice from Steal Like an Artist. Patterns emerge over weeks — you discover your actual aesthetic interests vs. what you think you're interested in. The list format removes the pressure of 'writing well' and lets you just observe." data-tag="Observation" data-freq="Daily / 5min">
+          <div class="habit-card-name">The Logbook</div>
+          <span class="habit-card-url">austinkleon.com</span>
+          <p class="habit-card-desc">One page of daily lists: what you looked at, read, watched, noticed. Patterns over weeks reveal actual aesthetic interests.</p>
+          <div class="habit-card-meta">
+            <span class="habit-card-tag">Observation</span>
+            <span class="habit-card-freq">Daily / 5min</span>
+          </div>
+        </div>
+        <div class="habit-card anim-card" style="--rot:-0.7deg" data-expand="habit" data-name="Articulation Test" data-url="shaping.design" data-desc="Pick two pieces of work. Write exactly why one is better. 'It feels right' is banned — you must replace it with specific observations about colour, composition, rhythm, weight, negative space. This is the single most powerful exercise for turning unconscious taste into conscious skill. The struggle IS the learning." data-tag="Critical Writing" data-freq="Weekly / 15min">
+          <div class="habit-card-name">Articulation Test</div>
+          <span class="habit-card-url">shaping.design</span>
+          <p class="habit-card-desc">Pick two pieces. Write exactly why one is better. "It feels right" is banned. Replace with specific observations.</p>
+          <div class="habit-card-meta">
+            <span class="habit-card-tag">Critical Writing</span>
+            <span class="habit-card-freq">Weekly / 15min</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 26. HABITS 4-6 ========== -->
+  <section class="panel panel--cream" data-panel="26">
+    <div class="panel-inner" style="max-width:1100px;">
+      <div class="section-head">
+        <span class="t-label anim-label" style="color:var(--ink-muted);">Continued</span>
+        <h3 class="t-display section-head-title anim-title" style="font-size:clamp(22px,3vw,40px);">Curation, auditing, archiving</h3>
+      </div>
+      <div class="habit-grid mt-24">
+        <div class="habit-card anim-card" style="--rot:2.1deg" data-expand="habit" data-name="Swipe File" data-url="blog.readymag.com" data-desc="Capture what stops you. Apply the Spark-Strength-Service filter weekly: Does it spark something? Is it technically strong? Can it serve your work? The deletion practice is as important as the capture — ruthlessly remove saves that no longer resonate. Your swipe file is a mirror of your evolving taste." data-tag="Reference" data-freq="Ongoing">
+          <div class="habit-card-name">Swipe File</div>
+          <span class="habit-card-url">blog.readymag.com</span>
+          <p class="habit-card-desc">Capture what stops you. Apply Spark-Strength-Service filter weekly. The deletion practice is as important as the capture.</p>
+          <div class="habit-card-meta">
+            <span class="habit-card-tag">Reference</span>
+            <span class="habit-card-freq">Ongoing</span>
+          </div>
+        </div>
+        <div class="habit-card anim-card" style="--rot:-1.5deg" data-expand="habit" data-name="Diverse-Ratio Audit" data-url="itsnicethat.com" data-desc="Review your inspiration sources monthly. If 80% of your references are from the same decade, medium, and culture — you're in a closed loop. Break it: add architecture if you only follow graphic design. Add 1970s film if you only watch contemporary work. Taste that references only itself calcifies." data-tag="Source Audit" data-freq="Monthly / 30min">
+          <div class="habit-card-name">Diverse-Ratio Audit</div>
+          <span class="habit-card-url">itsnicethat.com</span>
+          <p class="habit-card-desc">Review inspiration sources monthly. Taste that only references contemporary work in your field is a closed loop.</p>
+          <div class="habit-card-meta">
+            <span class="habit-card-tag">Source Audit</span>
+            <span class="habit-card-freq">Monthly / 30min</span>
+          </div>
+        </div>
+        <div class="habit-card anim-card" style="--rot:0.9deg" data-expand="habit" data-name="Twyla Tharp's Box" data-url="Physical Practice" data-desc="Twyla Tharp's method from The Creative Habit: start every project with a physical cardboard box. Everything related goes in — clippings, notes, photos, objects, scraps. When you're stuck, reach into the box. What you keep reaching for reveals your actual taste. What stays at the bottom reveals what you thought mattered but didn't." data-tag="Project Ritual" data-freq="Per Project">
+          <div class="habit-card-name">Twyla Tharp's Box</div>
+          <span class="habit-card-url">Physical Practice</span>
+          <p class="habit-card-desc">A physical box per project. Everything relevant goes in. What you keep reaching for reveals your actual taste.</p>
+          <div class="habit-card-meta">
+            <span class="habit-card-tag">Project Ritual</span>
+            <span class="habit-card-freq">Per Project</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 27. EXERCISE — HABIT COMMITMENT ========== -->
+  <section class="panel panel--exercise" data-panel="27" data-timer="300">
+    <div class="panel-inner">
+      <div class="exercise-badge">EXERCISE</div>
+      <h2 class="t-display exercise-title anim-title">Habit<br>Commitment</h2>
+      <p class="exercise-instruction anim-body"><strong>Pick ONE habit from the six.</strong> Not three. Not two. One. Write down: what habit, when you'll do it, for how long, for how many weeks. <strong>Sign it.</strong></p>
+      <ul class="exercise-rules anim-body">
+        <li>Morning Pages at 7am for 20 minutes for 12 weeks</li>
+        <li>Logbook at 11pm for 5 minutes for 8 weeks</li>
+        <li>Your version — specific, timed, signed</li>
+      </ul>
+      <div class="timer-display" onclick="toggleTimer(this)" data-seconds="300">
+        <span class="timer-value">5:00</span>
+        <span class="timer-label">TAP TO START</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 28. TAKEAWAY 5 ========== -->
+  <section class="panel panel--dark panel--takeaway" data-panel="28">
+    <div>
+      <p class="t-display takeaway-text anim-title"><span class="tw-em">One</span> habit, consistently, beats <span class="tw-em">ten</span> habits abandoned.</p>
+      <span class="t-hand takeaway-hand anim-hand">The one you picked just now? Do it tonight.</span>
+    </div>
+  </section>
+
+  <!-- ========== 29. CHAPTER 6 COVER — YOUR STACK ========== -->
+  <section class="panel panel--dark" data-panel="29" data-chapter="6">
+    <div class="chapter-num t-display anim-num">06</div>
+    <div class="panel-inner">
+      <span class="t-label t-lime chapter-label anim-label">Chapter Six</span>
+      <h2 class="t-display chapter-title anim-title">YOUR<br>STACK</h2>
+      <p class="t-body chapter-sub anim-sub">20 resources. You pick 3. Start tonight.</p>
+      <div class="chapter-line anim-line"></div>
+    </div>
+  </section>
+
+  <!-- ========== 30. RESOURCES 1-10 ========== -->
+  <section class="panel panel--dark" data-panel="30">
+    <div class="panel-inner" style="max-width:800px;">
+      <div class="section-head">
+        <span class="t-label t-lime section-head-label anim-label">The Essential Stack</span>
+        <h3 class="t-display section-head-title anim-title" style="font-size:clamp(20px,2.5vw,36px);">20 resources to develop aesthetic judgment</h3>
+      </div>
+      <div class="resource-list mt-24">
+        <div class="resource-row anim-card"><span class="res-num">01</span><div><a class="res-name" href="https://www.youtube.com/watch?v=PbC4gqZGPSY" target="_blank" rel="noopener">Ira Glass -- The Taste Gap</a><span class="res-desc">The original articulation of the skill-taste gap</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">02</span><div><a class="res-name" href="https://www.elizabethgoodspeed.com" target="_blank" rel="noopener">Elizabeth Goodspeed -- On Taste</a><span class="res-desc">Best contemporary essay on aesthetic development</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">03</span><div><a class="res-name" href="https://www.penguinrandomhouse.com/books/717356/the-creative-act-by-rick-rubin/" target="_blank" rel="noopener">Rick Rubin -- The Creative Act</a><span class="res-desc">On perception as the root of creativity</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">04</span><div><a class="res-name" href="https://www.simonandschuster.com/books/The-Creative-Habit/Twyla-Tharp/9781480589377" target="_blank" rel="noopener">The Creative Habit -- Twyla Tharp</a><span class="res-desc">Physical + systemic approach to creative routine</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">05</span><div><a class="res-name" href="https://www.youtube.com/watch?v=0pDE4VX_9Kk" target="_blank" rel="noopener">Ways of Seeing -- John Berger</a><span class="res-desc">Free online. Foundational visual literacy text</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">06</span><div><a class="res-name" href="https://cosmos.so" target="_blank" rel="noopener">Cosmos</a><span class="res-desc">Apple App of the Year 2025. Zero algorithm visual library</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">07</span><div><a class="res-name" href="https://www.are.na" target="_blank" rel="noopener">Are.na</a><span class="res-desc">Anti-algorithmic research archive</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">08</span><div><a class="res-name" href="https://mymind.com" target="_blank" rel="noopener">mymind</a><span class="res-desc">Private AI-tagged visual collection</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">09</span><div><a class="res-name" href="https://frameset.app" target="_blank" rel="noopener">Frameset</a><span class="res-desc">350K+ film and commercial frames, searchable</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">10</span><div><a class="res-name" href="https://vimeo.com/channels/staffpicks" target="_blank" rel="noopener">Vimeo Staff Picks</a><span class="res-desc">Editorial-quality motion reference, no algorithm</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 31. RESOURCES 11-20 ========== -->
+  <section class="panel panel--dark" data-panel="31">
+    <div class="panel-inner" style="max-width:800px;">
+      <div class="section-head">
+        <span class="t-label t-lime section-head-label anim-label">Continued</span>
+        <h3 class="t-display section-head-title anim-title" style="font-size:clamp(20px,2.5vw,36px);">Resources 11-20</h3>
+      </div>
+      <div class="resource-list mt-24">
+        <div class="resource-row anim-card"><span class="res-num">11</span><div><a class="res-name" href="https://www.youtube.com/@everyframeapainting" target="_blank" rel="noopener">Every Frame a Painting</a><span class="res-desc">28 cinematography essays, required watching</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">12</span><div><a class="res-name" href="https://mubi.com" target="_blank" rel="noopener">MUBI</a><span class="res-desc">30-film rolling auteur library</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">13</span><div><a class="res-name" href="https://juliacameronlive.com/basic-tools/morning-pages/" target="_blank" rel="noopener">Morning Pages -- Julia Cameron</a><span class="res-desc">12-week daily writing practice for taste discovery</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">14</span><div><a class="res-name" href="https://austinkleon.com/steal/" target="_blank" rel="noopener">Steal Like an Artist -- Austin Kleon</a><span class="res-desc">See like your heroes, not look like them</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">15</span><div><a class="res-name" href="https://designlobster.substack.com" target="_blank" rel="noopener">Design Lobster</a><span class="res-desc">Weekly visual references with editorial analysis</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">16</span><div><a class="res-name" href="https://readymag.com/readymag/taste/" target="_blank" rel="noopener">Readymag -- How to Train Your Taste</a><span class="res-desc">Practical taste-building framework</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">17</span><div><a class="res-name" href="https://www.masterclass.com/classes/david-carson-teaches-graphic-design" target="_blank" rel="noopener">David Carson MasterClass</a><span class="res-desc">Intuition-driven design from the master of chaos</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">18</span><div><a class="res-name" href="https://vtshome.org" target="_blank" rel="noopener">VTS Aesthetic Development</a><span class="res-desc">Research-backed visual thinking strategy</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">19</span><div><a class="res-name" href="https://instagram.com/jjjjound" target="_blank" rel="noopener">@jjjjound on Instagram</a><span class="res-desc">Highest signal-to-noise moodboard on Instagram</span></div></div>
+        <div class="resource-row anim-card"><span class="res-num">20</span><div><a class="res-name" href="https://archive.org/details/the-art-of-looking-sideways" target="_blank" rel="noopener">The Art of Looking Sideways -- Alan Fletcher</a><span class="res-desc">Free on Archive.org. Visual lateral thinking encyclopedia</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 32. EXERCISE — CIRCLE YOUR 3 ========== -->
+  <section class="panel panel--exercise" data-panel="32" data-timer="480">
+    <div class="panel-inner">
+      <div class="exercise-badge">EXERCISE</div>
+      <h2 class="t-display exercise-title anim-title">Circle<br>Your 3</h2>
+      <p class="exercise-instruction anim-body">From the 20 resources you just saw: <strong>pick 3.</strong> Not 5. Not 8. Three. Write one sentence for each: <strong>why this one?</strong> What does it address in your current taste gap?</p>
+      <ul class="exercise-rules anim-body">
+        <li>These become your 30-day starter kit</li>
+        <li>One should challenge you (something outside your field)</li>
+        <li>One should delight you (the one that made you lean forward)</li>
+        <li>One should be a daily habit (something to practice, not just consume)</li>
+      </ul>
+      <div class="timer-display" onclick="toggleTimer(this)" data-seconds="480">
+        <span class="timer-value">8:00</span>
+        <span class="timer-label">TAP TO START</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 33. TAKEAWAY FINAL ========== -->
+  <section class="panel panel--dark panel--takeaway" data-panel="33">
+    <div>
+      <p class="t-display takeaway-text anim-title">Start <span class="tw-em">tonight</span>.<br>Not Monday.</p>
+      <span class="t-hand takeaway-hand anim-hand">The gap closes one day at a time.</span>
+    </div>
+  </section>
+
+  <!-- ========== 34. RECAP ========== -->
+  <section class="panel panel--dark" data-panel="34">
+    <div class="panel-inner" style="max-width:1100px;">
+      <div class="section-head" style="text-align:center;margin-bottom:48px;">
+        <span class="t-label t-lime section-head-label anim-label">The Journey</span>
+        <h3 class="t-display section-head-title anim-title" style="font-size:clamp(24px,3.5vw,48px);">The TRANSFORM Arc</h3>
+      </div>
+      <div class="recap-grid">
+        <div class="recap-item anim-card">
+          <div class="recap-item-num">01</div>
+          <div class="recap-item-label">TRIGGER</div>
+          <div class="recap-item-desc">The gap between taste and skill</div>
+        </div>
+        <div class="recap-item anim-card">
+          <div class="recap-item-num">02</div>
+          <div class="recap-item-label">THEORY</div>
+          <div class="recap-item-desc">What taste is and how it forms</div>
+        </div>
+        <div class="recap-item anim-card">
+          <div class="recap-item-num">03</div>
+          <div class="recap-item-label">TERRAIN</div>
+          <div class="recap-item-desc">Where to find high-signal inputs</div>
+        </div>
+        <div class="recap-item anim-card">
+          <div class="recap-item-num">04</div>
+          <div class="recap-item-label">TERRAIN</div>
+          <div class="recap-item-desc">Training the cinematic eye</div>
+        </div>
+        <div class="recap-item anim-card">
+          <div class="recap-item-num">05</div>
+          <div class="recap-item-label">TRAINING</div>
+          <div class="recap-item-desc">Daily habits that compound</div>
+        </div>
+        <div class="recap-item anim-card">
+          <div class="recap-item-num">06</div>
+          <div class="recap-item-label">TOMORROW</div>
+          <div class="recap-item-desc">Your 3 resources, tonight</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 35. THANK YOU ========== -->
+  <section class="panel panel--dark" data-panel="35">
+    <div class="panel-inner" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+      <h2 class="t-display thankyou-title anim-title">THANK<br>YOU</h2>
+      <p class="thankyou-sub t-body anim-body">Vortex Studios &middot; Taste Maxing Workshop &middot; April 2026</p>
+    </div>
+    <div class="thankyou-credit">Research &amp; Design by Vortex Studios AI System</div>
+  </section>
+
+</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- ==================== SCRIPTS ================================ -->
+<!-- ============================================================ -->
+<script>
+(function() {
+  'use strict';
+
+  gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+  var panels = gsap.utils.toArray('.panel');
+  var totalPanels = panels.length;
+  var container = document.getElementById('horizontalContainer');
+  var wrapper = document.getElementById('horizontalWrapper');
+  var progressFill = document.getElementById('progressFill');
+  var panelCurrent = document.getElementById('panelCurrent');
+  var panelTotalEl = document.getElementById('panelTotal');
+  var loader = document.getElementById('loader');
+  var horizontalTween;
+
+  panelTotalEl.textContent = String(totalPanels).padStart(2, '0');
+
+  /* ========== 1. PER-PANEL BACKGROUND COLORS (Kevin Luna palette) ========== */
+  var panelBgs = {
+    1:  null,            /* Title — keep dark */
+    2:  '#081525',       /* Provocation — deep navy */
+    3:  null,            /* Ch1 Cover */
+    4:  '#2A1510',       /* Ira Glass — warm umber */
+    5:  '#0A1A0E',       /* Gap explained — forest */
+    6:  null,            /* Exercise */
+    7:  '#1E0A38',       /* Takeaway 1 — electric purple */
+    8:  null,            /* Ch2 Cover */
+    9:  '#2E1020',       /* Goodspeed — rich mauve */
+    10: '#0C1522',       /* Thinkers — deep slate */
+    11: '#1A1C0A',       /* Contradiction — olive */
+    12: null,            /* Exercise */
+    13: '#062828',       /* Takeaway 2 — deep teal */
+    14: null,            /* Ch3 Cover */
+    15: '#0A1225',       /* Platforms — midnight blue */
+    16: '#101E12',       /* Instagram — sage */
+    17: null,            /* Exercise */
+    18: '#351E08',       /* Takeaway 3 — burnt amber */
+    19: null,            /* Ch4 Cover */
+    20: '#200C14',       /* Film — dark burgundy */
+    21: '#0A1218',       /* YouTube — steel */
+    22: null,            /* Exercise */
+    23: '#100A3A',       /* Takeaway 4 — indigo */
+    24: null,            /* Ch5 Cover */
+    25: null,            /* Habits 1 — keep cream */
+    26: null,            /* Habits 2 — keep cream */
+    27: null,            /* Exercise */
+    28: '#082810',       /* Takeaway 5 — deep forest */
+    29: null,            /* Ch6 Cover */
+    30: '#1A1408',       /* Resources 1 — warm sepia */
+    31: '#0C1420',       /* Resources 2 — cool navy */
+    32: null,            /* Exercise */
+    33: '#381205',       /* Takeaway final — burnt sienna */
+    34: '#0A0A08',       /* Recap */
+    35: '#0A0A08'        /* Thank You */
+  };
+
+  panels.forEach(function(p, i) {
+    var bg = panelBgs[i + 1];
+    if (bg) p.style.backgroundColor = bg;
+  });
+
+  /* ========== 2. DYNAMIC SCATTER ELEMENTS — all panels ========== */
+  var scatterTypes = [
+    { cls: 'scatter-star',    items: ['\u2726','\u2736','\u2739','\u2733','\u269D'] },
+    { cls: 'scatter-cross',   items: [''] },
+    { cls: 'scatter-dot',     items: [''] },
+    { cls: 'scatter-circle',  items: [''], size: true },
+    { cls: 'scatter-note',    items: ['look closer \u2192','taste is a muscle','why this?','notice...','study the masters','feel it?','keep going','volume.','be specific','your eye knows','trust your gut','less but better','details matter'] },
+    { cls: 'scatter-tape',    items: [''] },
+    { cls: 'scatter-arrow',   items: ['\u27A4','\u2192','\u2197','\u21B4'] },
+    { cls: 'scatter-paper',   items: ['see like your heroes','signal > noise','the gap is the engine','practice daily','articulate why','curate ruthlessly','steal like an artist','look deeper','start tonight'] },
+    { cls: 'scatter-sticker', items: ['TASTE','LOOK','NOTICE','FEEL','STUDY','CREATE','SEE','PRACTICE','OBSERVE','DEPTH'] },
+    { cls: 'scatter-outline', items: [''] }
+  ];
+
+  function rInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+  function rPick(arr) { return arr[rInt(0, arr.length - 1)]; }
+
+  panels.forEach(function(panel, i) {
+    /* Skip panels that already have 4+ scatter elements */
+    if (panel.querySelectorAll('.scatter').length > 3) return;
+    /* Skip cream habit panels */
+    var n = i + 1;
+    if (n === 25 || n === 26) return;
+
+    var count = rInt(5, 9);
+    for (var s = 0; s < count; s++) {
+      var type = rPick(scatterTypes);
+      var el = document.createElement('div');
+      el.className = 'scatter ' + type.cls;
+      el.setAttribute('aria-hidden', 'true');
+      if (type.items[0]) el.textContent = rPick(type.items);
+      el.style.top = rInt(6, 90) + '%';
+      el.style.left = rInt(4, 93) + '%';
+      if (type.cls === 'scatter-note' || type.cls === 'scatter-paper' || type.cls === 'scatter-tape') {
+        el.style.setProperty('--rot', rInt(-14, 14) + 'deg');
+      }
+      if (type.size) {
+        var sz = rInt(28, 75);
+        el.style.width = sz + 'px';
+        el.style.height = sz + 'px';
+      }
+      panel.appendChild(el);
+    }
+  });
+
+  /* ========== 2b. PRE-HIDE HERO ELEMENTS ========== */
+  /* Hide hero content BEFORE loader starts so it's invisible during the
+     plus-reveal wipe. initHeroEntrance() will animate them in after reveal. */
+  gsap.set('.title-word--taste, .title-word--maxing', { opacity: 0, scale: 0.3, y: 80, rotateX: -40 });
+  gsap.set('.title-sub', { opacity: 0, y: 40 });
+  gsap.set('.title-studio', { opacity: 0, x: -30 });
+  gsap.set('.title-meta', { opacity: 0, y: 30 });
+  gsap.set('.title-float-1', { opacity: 0, x: 200, y: -100, rotation: 20, scale: 0.5 });
+  gsap.set('.title-float-2', { opacity: 0, x: 150, y: 120, rotation: -15, scale: 0.5 });
+  gsap.set('.title-float-3', { opacity: 0, x: 100, y: -80, rotation: 10, scale: 0.5 });
+  gsap.set('.title-quote-card', { opacity: 0, scale: 0.4, rotation: 12 });
+  /* Hero scatter elements — hide them too */
+  var heroPanel = document.querySelector('[data-panel="1"]');
+  if (heroPanel) {
+    gsap.set(heroPanel.querySelectorAll('.scatter'), { opacity: 0, scale: 0 });
+  }
+
+  /* ========== 3. LOADER + PLUS WIPE ========== */
+  var loaderStar = document.getElementById('loaderStar');
+  var plusHole = document.getElementById('plusHole');
+
+  /* Set up pixel-based SVG mask so plus stays perfectly square on any aspect ratio */
+  var vw = window.innerWidth, vh = window.innerHeight;
+  var cx = vw / 2, cy = vh / 2;
+  var armLen = 60, armW = 36, rr = 4; /* 30% arm width matches CSS .loader-star */
+  var maskBg = document.getElementById('maskBg');
+  maskBg.setAttribute('width', vw);
+  maskBg.setAttribute('height', vh);
+  var plusV = plusHole.querySelector('.plus-v');
+  var plusH = plusHole.querySelector('.plus-h');
+  plusV.setAttribute('x', -armW / 2); plusV.setAttribute('y', -armLen);
+  plusV.setAttribute('width', armW); plusV.setAttribute('height', armLen * 2);
+  plusV.setAttribute('rx', rr); plusV.setAttribute('ry', rr);
+  plusH.setAttribute('x', -armLen); plusH.setAttribute('y', -armW / 2);
+  plusH.setAttribute('width', armLen * 2); plusH.setAttribute('height', armW);
+  plusH.setAttribute('rx', rr); plusH.setAttribute('ry', rr);
+  plusHole.setAttribute('transform', 'translate(' + cx + ',' + cy + ') scale(0) rotate(0)');
+
+  var loaderTl = gsap.timeline({
+    onComplete: function() {
+      initHorizontalScroll();
+      initCursor();
+      initFloats();
+      initPanelAnimations();
+      initMouseParallax();
+      initExpandModal();
+      initChapterNav();
+      initScatterAnims();
+    }
+  });
+
+  loaderTl
+    .from('.loader-word', { y: 60, opacity: 0, duration: 0.7, stagger: 0.18, ease: 'power3.out' })
+    .from(loaderStar, { scale: 0, opacity: 0, duration: 0.5, ease: 'back.out(1.7)' }, '-=0.3')
+    .to('.loader-sub', { opacity: 1, duration: 0.4, ease: 'power2.out' }, '-=0.2')
+    .to(loaderStar, { rotation: 90, duration: 0.25, ease: 'power4.out' }, '+=0.4')
+    .to(loaderStar, { rotation: 180, duration: 0.22, ease: 'power4.out' }, '+=0.3')
+    .to(loaderStar, { rotation: 270, duration: 0.18, ease: 'power4.out' }, '+=0.2')
+    .to(loaderStar, { rotation: 360, duration: 0.15, ease: 'power4.out' }, '+=0.12')
+    .to('.loader-word, .loader-sub', { opacity: 0, duration: 0.25, ease: 'power2.in' })
+    .add('expand')
+    .to(loaderStar, {
+      scale: 200, rotation: 450, duration: 1.0, ease: 'power2.inOut'
+    }, 'expand')
+
+    .add(function() {
+      loader.style.mask = 'url(#plusRevealMask)';
+      loader.style.webkitMask = 'url(#plusRevealMask)';
+
+      var revealObj = { s: 0, r: 0 };
+      var heroStarted = false;
+      /* Need scale large enough that the plus hole covers entire viewport.
+         Diagonal / armLen ≈ how big. Use 40 to be safe. */
+      var diag = Math.sqrt(vw * vw + vh * vh);
+      var maxScale = (diag / armLen) * 1.2;
+
+      gsap.to(revealObj, { r: 180, duration: 0.9, ease: 'power1.out' });
+
+      gsap.to(revealObj, {
+        s: maxScale,
+        duration: 0.9,
+        ease: 'power2.in',
+        onUpdate: function() {
+          plusHole.setAttribute('transform',
+            'translate(' + cx + ',' + cy + ') scale(' + revealObj.s + ') rotate(' + revealObj.r + ')');
+          if (!heroStarted && revealObj.s > maxScale * 0.3) {
+            heroStarted = true;
+            initHeroEntrance();
+          }
+        },
+        onComplete: function() {
+          loader.style.display = 'none';
+        }
+      });
+    }, 'expand+=0.25');
+
+  /* ========== 4. HORIZONTAL SCROLL ========== */
+  function initHorizontalScroll() {
+    horizontalTween = gsap.to(container, {
+      x: function() { return -(container.scrollWidth - window.innerWidth); },
+      ease: 'none',
+      scrollTrigger: {
+        trigger: wrapper, pin: true, scrub: 1.5,
+        end: function() { return '+=' + (container.scrollWidth - window.innerWidth); },
+        invalidateOnRefresh: true,
+        onUpdate: function(self) {
+          gsap.set(progressFill, { width: (self.progress * 100) + '%' });
+          var idx = Math.round(self.progress * (totalPanels - 1)) + 1;
+          panelCurrent.textContent = String(idx).padStart(2, '0');
+        }
+      }
+    });
+  }
+
+  /* ========== 5. PANEL ANIMATIONS (containerAnimation) ========== */
+  function initPanelAnimations() {
+    panels.forEach(function(panel, i) {
+      if (i === 0) return;
+
+      var chapterNum = panel.querySelector('.anim-num');
+      if (chapterNum) {
+        gsap.from(chapterNum, { scale: 3, opacity: 0, duration: 1, ease: 'expo.out',
+          scrollTrigger: { trigger: panel, containerAnimation: horizontalTween, start: 'left 80%', toggleActions: 'play none none reverse' }
+        });
+      }
+
+      panel.querySelectorAll('.anim-label').forEach(function(el) {
+        gsap.from(el, { x: -30, opacity: 0, duration: 0.6, ease: 'power3.out',
+          scrollTrigger: { trigger: panel, containerAnimation: horizontalTween, start: 'left 75%', toggleActions: 'play none none reverse' }
+        });
+      });
+
+      panel.querySelectorAll('.anim-title').forEach(function(el) {
+        gsap.from(el, { y: 50, opacity: 0, duration: 0.8, ease: 'expo.out',
+          scrollTrigger: { trigger: panel, containerAnimation: horizontalTween, start: 'left 70%', toggleActions: 'play none none reverse' }
+        });
+      });
+
+      panel.querySelectorAll('.anim-sub, .anim-body').forEach(function(el, si) {
+        gsap.from(el, { y: 30, opacity: 0, duration: 0.7, delay: 0.15 * si, ease: 'power3.out',
+          scrollTrigger: { trigger: panel, containerAnimation: horizontalTween, start: 'left 65%', toggleActions: 'play none none reverse' }
+        });
+      });
+
+      var line = panel.querySelector('.anim-line');
+      if (line) {
+        gsap.from(line, { scaleX: 0, duration: 0.6, ease: 'power3.out', transformOrigin: 'left',
+          scrollTrigger: { trigger: panel, containerAnimation: horizontalTween, start: 'left 60%', toggleActions: 'play none none reverse' }
+        });
+      }
+
+      var cards = panel.querySelectorAll('.anim-card');
+      if (cards.length) {
+        gsap.from(cards, { y: 40, opacity: 0, duration: 0.6, stagger: 0.08, ease: 'power3.out',
+          scrollTrigger: { trigger: panel, containerAnimation: horizontalTween, start: 'left 65%', toggleActions: 'play none none reverse' }
+        });
+      }
+
+      panel.querySelectorAll('.anim-words').forEach(function(el) {
+        gsap.from(el, { y: 30, opacity: 0, duration: 1, ease: 'power2.out',
+          scrollTrigger: { trigger: panel, containerAnimation: horizontalTween, start: 'left 70%', toggleActions: 'play none none reverse' }
+        });
+      });
+
+      panel.querySelectorAll('.anim-hand').forEach(function(el) {
+        gsap.from(el, { x: -20, opacity: 0, rotation: -5, duration: 0.7, ease: 'power3.out', delay: 0.4,
+          scrollTrigger: { trigger: panel, containerAnimation: horizontalTween, start: 'left 65%', toggleActions: 'play none none reverse' }
+        });
+      });
+
+      panel.querySelectorAll('.anim-float').forEach(function(el) {
+        gsap.from(el, { scale: 0.8, opacity: 0, rotation: 8, duration: 1.2, ease: 'elastic.out(1, 0.6)',
+          scrollTrigger: { trigger: panel, containerAnimation: horizontalTween, start: 'left 75%', toggleActions: 'play none none reverse' }
+        });
+      });
+
+      var portrait = panel.querySelector('.quote-portrait');
+      if (portrait) {
+        gsap.from(portrait, { x: 80, opacity: 0, scale: 1.1, duration: 1.2, ease: 'power3.out',
+          scrollTrigger: { trigger: panel, containerAnimation: horizontalTween, start: 'left 75%', toggleActions: 'play none none reverse' }
+        });
+      }
+    });
+  }
+
+  /* ========== 6. CURSOR ========== */
+  function initCursor() {
+    if (window.innerWidth < 768) return;
+    var dot = document.getElementById('cursorDot');
+    var ring = document.getElementById('cursorRing');
+    var mx = window.innerWidth / 2, my = window.innerHeight / 2;
+    var rx = mx, ry = my;
+
+    document.addEventListener('mousemove', function(e) {
+      mx = e.clientX; my = e.clientY;
+      gsap.set(dot, { x: mx, y: my });
+    });
+
+    (function lerpRing() {
+      rx += (mx - rx) * 0.12;
+      ry += (my - ry) * 0.12;
+      gsap.set(ring, { x: rx, y: ry });
+      requestAnimationFrame(lerpRing);
+    })();
+
+    /* Hover ring expands on ALL interactive elements */
+    document.querySelectorAll('a, button, [data-expand], .timer-display, .insta-handle, .chapter-nav-item, .resource-row, .yt-item, .recap-item, .insight-side').forEach(function(el) {
+      el.addEventListener('mouseenter', function() { ring.classList.add('hover'); });
+      el.addEventListener('mouseleave', function() { ring.classList.remove('hover'); });
+    });
+  }
+
+  /* ========== 7. FLOATING PERSISTENT ELEMENTS ========== */
+  function initFloats() {
+    document.querySelectorAll('.float-persistent').forEach(function(el, i) {
+      gsap.to(el, {
+        y: '+=' + (10 + i * 8), x: '+=' + (i % 2 === 0 ? 6 : -6),
+        rotation: '+=' + (i % 2 === 0 ? 2 : -2),
+        duration: 3 + i * 0.8, ease: 'sine.inOut', repeat: -1, yoyo: true
+      });
+    });
+    document.querySelectorAll('.title-float-img').forEach(function(el, i) {
+      gsap.to(el, {
+        y: '+=' + (8 + i * 5), rotation: '+=' + (i % 2 === 0 ? 3 : -3),
+        duration: 2.5 + i * 0.7, ease: 'sine.inOut', repeat: -1, yoyo: true
+      });
+    });
+  }
+
+  /* ========== 8. MOUSE PARALLAX — REAL 3D DEPTH ========== */
+  function initMouseParallax() {
+    if (window.innerWidth < 768) return;
+
+    /* 3D depth layers — higher number = further from viewer = moves MORE
+       and in OPPOSITE direction to mouse (true parallax) */
+    var depthMap = [
+      /* Hero elements — dramatic depth separation */
+      { sel: '.title-word--taste',   layer: 1 },   /* foreground — barely moves */
+      { sel: '.title-word--maxing',  layer: 1.5 },
+      { sel: '.title-sub',           layer: 0.8 },
+      { sel: '.title-float-img',     layer: 5 },   /* deep background — moves a lot */
+      { sel: '.title-quote-card',    layer: 3.5 },
+      { sel: '.title-studio',        layer: 0.5 },
+      { sel: '.title-meta',          layer: 0.6 },
+
+      /* Scatter elements — varied depths for rich parallax */
+      { sel: '.scatter-star',        layer: 6 },   /* stars float deepest */
+      { sel: '.scatter-cross',       layer: 4.5 },
+      { sel: '.scatter-dot',         layer: 7 },   /* tiny dots = furthest away */
+      { sel: '.scatter-circle',      layer: 5.5 },
+      { sel: '.scatter-outline',     layer: 5 },
+      { sel: '.scatter-note',        layer: 3 },
+      { sel: '.scatter-paper',       layer: 2.5 },
+      { sel: '.scatter-sticker',     layer: 2 },
+      { sel: '.scatter-tape',        layer: 4 },
+      { sel: '.scatter-arrow',       layer: 3.5 },
+
+      /* Text elements across all panels */
+      { sel: '.chapter-title',       layer: 1.2 },
+      { sel: '.chapter-sub',         layer: 1.5 },
+      { sel: '.chapter-label',       layer: 0.8 },
+      { sel: '.chapter-num',         layer: 1 },
+      { sel: '.chapter-line',        layer: 3 },
+      { sel: '.provocation-text',    layer: 1.2 },
+      { sel: '.provocation-hand',    layer: 1.8 },
+      { sel: '.takeaway-text',       layer: 1.2 },
+      { sel: '.section-head',        layer: 0.8 },
+      { sel: '.quote-text',          layer: 1.3 },
+      { sel: '.quote-cite',          layer: 1 },
+      { sel: '.exercise-instruction',layer: 1 },
+      { sel: '.exercise-rules',      layer: 0.8 },
+      { sel: '.exercise-badge',      layer: 3 },
+      { sel: '.insight-vs',          layer: 4.5 },
+      { sel: '.insight-side',        layer: 1 },
+      { sel: '.insight-conclusion',  layer: 0.8 },
+
+      /* Cards and grids */
+      { sel: '.quote-portrait',      layer: 4 },
+      { sel: '.float-persistent',    layer: 2 },
+      { sel: '.thinker-mini',        layer: 1.5 },
+      { sel: '.thinker-mini-img',    layer: 3 },
+      { sel: '.platform-card',       layer: 1.5 },
+      { sel: '.platform-card-img',   layer: 2.5 },
+      { sel: '.cinema-card',         layer: 1.5 },
+      { sel: '.cinema-card-img',     layer: 2.5 },
+      { sel: '.habit-card',          layer: 2 },
+      { sel: '.timer-display',       layer: 2 },
+      { sel: '.recap-item',          layer: 1 },
+      { sel: '.insta-featured-card',  layer: 2 },
+      { sel: '.insta-handle',        layer: 1 },
+      { sel: '.yt-item',             layer: 0.8 },
+      { sel: '.resource-row',        layer: 0.6 }
+    ];
+
+    var items = [];
+    depthMap.forEach(function(dm) {
+      document.querySelectorAll(dm.sel).forEach(function(el) {
+        items.push({ el: el, layer: dm.layer });
+      });
+    });
+
+    /* Smoothed mouse position for fluid motion */
+    var targetX = 0, targetY = 0;
+    var currentX = 0, currentY = 0;
+
+    document.addEventListener('mousemove', function(e) {
+      /* Normalize to -1..1 range */
+      targetX = (e.clientX / window.innerWidth - 0.5) * 2;
+      targetY = (e.clientY / window.innerHeight - 0.5) * 2;
+    });
+
+    /* RAF loop — uses CSS `translate` property (independent of GSAP transform)
+       so it doesn't conflict with float/scatter gsap tweens */
+    (function parallaxLoop() {
+      currentX += (targetX - currentX) * 0.08;
+      currentY += (targetY - currentY) * 0.08;
+
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var L = it.layer;
+        /* True parallax: deeper layers move MORE, opposite to mouse */
+        var moveX = -currentX * L * 25;
+        var moveY = -currentY * L * 18;
+        /* CSS translate is independent of GSAP's transform — no conflicts */
+        it.el.style.translate = moveX + 'px ' + moveY + 'px';
+        /* 3D tilt via GSAP (doesn't conflict with float anims which only use x/y) */
+        it.el.style.rotate = 'y ' + (currentX * L * 3) + 'deg';
+      }
+      requestAnimationFrame(parallaxLoop);
+    })();
+  }
+
+  /* ========== 9. TIMER ========== */
+  var activeTimer = null;
+
+  window.toggleTimer = function(el) {
+    if (activeTimer && activeTimer.el === el) {
+      clearInterval(activeTimer.interval);
+      activeTimer = null;
+      el.classList.remove('running');
+      el.querySelector('.timer-label').textContent = 'TAP TO RESUME';
+      return;
+    }
+    if (activeTimer) {
+      clearInterval(activeTimer.interval);
+      activeTimer.el.classList.remove('running', 'done');
+    }
+    var totalSeconds = parseInt(el.dataset.seconds, 10);
+    var valueEl = el.querySelector('.timer-value');
+    var labelEl = el.querySelector('.timer-label');
+    if (el.classList.contains('done')) {
+      el.classList.remove('done');
+      el.dataset.remaining = totalSeconds;
+      valueEl.textContent = formatTime(totalSeconds);
+      labelEl.textContent = 'TAP TO START';
+      return;
+    }
+    var remaining = el.dataset.remaining ? parseInt(el.dataset.remaining, 10) : totalSeconds;
+    el.classList.add('running');
+    labelEl.textContent = 'RUNNING';
+    activeTimer = {
+      el: el,
+      interval: setInterval(function() {
+        remaining--;
+        el.dataset.remaining = remaining;
+        valueEl.textContent = formatTime(remaining);
+        if (remaining <= 0) {
+          clearInterval(activeTimer.interval);
+          activeTimer = null;
+          el.classList.remove('running');
+          el.classList.add('done');
+          valueEl.textContent = 'TIME';
+          labelEl.textContent = 'TAP TO RESET';
+        }
+      }, 1000)
+    };
+  };
+
+  function formatTime(s) {
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  /* ========== 10. KEYBOARD NAV ========== */
+  document.addEventListener('keydown', function(e) {
+    var overlay = document.getElementById('expandOverlay');
+    if (overlay.classList.contains('open')) {
+      if (e.key === 'Escape') overlay.classList.remove('open');
+      return;
+    }
+    if (e.key === 'ArrowRight' || e.key === ' ') {
+      e.preventDefault();
+      window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' });
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      window.scrollBy({ top: -window.innerHeight * 0.8, behavior: 'smooth' });
+    }
+  });
+
+  /* ========== 11. CHAPTER NAV (fixed: uses ScrollTrigger bounds) ========== */
+  function initChapterNav() {
+    var navItems = document.querySelectorAll('.chapter-nav-item');
+
+    /* Click → jump to panel */
+    navItems.forEach(function(item) {
+      item.addEventListener('click', function() {
+        var st = ScrollTrigger.getAll()[0];
+        if (!st) return;
+        var targetPanel = parseInt(item.dataset.target, 10);
+        var progress = (targetPanel - 1) / (totalPanels - 1);
+        var scrollPos = st.start + progress * (st.end - st.start);
+        gsap.to(window, {
+          scrollTo: { y: scrollPos, autoKill: false },
+          duration: 1.2,
+          ease: 'power3.inOut'
+        });
+      });
+    });
+
+    /* Highlight active chapter */
+    (function updateNav() {
+      var st = ScrollTrigger.getAll()[0];
+      if (!st) { requestAnimationFrame(updateNav); return; }
+      var progress = st.progress;
+      var currentIdx = Math.round(progress * (totalPanels - 1)) + 1;
+
+      navItems.forEach(function(item, idx) {
+        var target = parseInt(item.dataset.target, 10);
+        var next = idx < navItems.length - 1 ? parseInt(navItems[idx + 1].dataset.target, 10) : Infinity;
+        var active = currentIdx >= target && currentIdx < next;
+        if (idx === navItems.length - 1) active = currentIdx >= target;
+        item.classList.toggle('active', active);
+      });
+      requestAnimationFrame(updateNav);
+    })();
+  }
+
+  /* ========== 12. EXPAND MODAL (all card types) ========== */
+  function initExpandModal() {
+    var overlay = document.getElementById('expandOverlay');
+    var expandImg = document.getElementById('expandImg');
+    var expandName = document.getElementById('expandName');
+    var expandUrl = document.getElementById('expandUrl');
+    var expandQuote = document.getElementById('expandQuote');
+    var expandDesc = document.getElementById('expandDesc');
+    var expandTag = document.getElementById('expandTag');
+
+    /* Bind ALL cards with data-expand */
+    document.querySelectorAll('[data-expand]').forEach(function(card) {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var type = card.dataset.expand;
+
+        /* Image */
+        expandImg.src = card.dataset.img || '';
+        expandImg.style.display = card.dataset.img ? 'block' : 'none';
+
+        /* Name */
+        expandName.textContent = card.dataset.name || '';
+
+        /* Reset all fields */
+        expandUrl.style.display = 'none';
+        expandQuote.style.display = 'none';
+        expandDesc.style.display = 'none';
+        expandTag.style.display = 'none';
+
+        if (type === 'thinker') {
+          expandUrl.textContent = card.dataset.source || '';
+          expandUrl.style.display = 'block';
+          expandQuote.textContent = '\u201C' + card.dataset.quote + '\u201D';
+          expandQuote.style.display = 'block';
+        } else if (type === 'platform' || type === 'cinema') {
+          expandUrl.textContent = card.dataset.url || '';
+          expandUrl.style.display = card.dataset.url ? 'block' : 'none';
+          expandDesc.textContent = card.dataset.desc || '';
+          expandDesc.style.display = 'block';
+          if (card.dataset.tag) {
+            expandTag.textContent = card.dataset.tag;
+            expandTag.style.display = 'inline-block';
+          }
+        } else if (type === 'habit') {
+          expandUrl.textContent = card.dataset.url || '';
+          expandUrl.style.display = card.dataset.url ? 'block' : 'none';
+          expandDesc.textContent = card.dataset.desc || '';
+          expandDesc.style.display = 'block';
+          if (card.dataset.tag) {
+            expandTag.textContent = card.dataset.tag + '  \u2022  ' + (card.dataset.freq || '');
+            expandTag.style.display = 'inline-block';
+          }
+        } else if (type === 'youtube') {
+          expandImg.style.display = 'none';
+          expandDesc.textContent = card.dataset.desc || '';
+          expandDesc.style.display = 'block';
+          expandTag.textContent = 'YOUTUBE CHANNEL';
+          expandTag.style.display = 'inline-block';
+          if (card.dataset.url) {
+            expandUrl.innerHTML = '<a href="' + card.dataset.url + '" target="_blank" rel="noopener" style="color:var(--lime);text-decoration:underline;">Watch on YouTube \u2197</a>';
+            expandUrl.style.display = 'block';
+          }
+        } else if (type === 'insta') {
+          expandImg.style.display = 'none';
+          expandName.textContent = card.dataset.name || card.textContent.trim();
+          expandDesc.textContent = card.dataset.desc || '';
+          expandDesc.style.display = 'block';
+          expandTag.textContent = 'INSTAGRAM';
+          expandTag.style.display = 'inline-block';
+          var instaHref = card.href || ('https://instagram.com/' + (card.dataset.name || card.textContent.trim()).replace('@',''));
+          expandUrl.innerHTML = '<a href="' + instaHref + '" target="_blank" rel="noopener" style="color:var(--lime);text-decoration:underline;">View on Instagram \u2197</a>';
+          expandUrl.style.display = 'block';
+        }
+
+        overlay.classList.add('open');
+      });
+    });
+
+    /* Close on overlay backdrop click */
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+
+    /* Prevent content area click from closing */
+    document.getElementById('expandContent').addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+  }
+
+  /* ========== 13. HERO ENTRANCE — dramatic reveal after loader ========== */
+  function initHeroEntrance() {
+    var hp = document.querySelector('[data-panel="1"]');
+    if (!hp) return;
+
+    /* Elements are already pre-hidden via gsap.set() at page load.
+       Animate TO final state. Everything fires nearly simultaneously —
+       tight overlaps so it feels like one continuous burst. */
+    var heroTl = gsap.timeline({ defaults: { ease: 'expo.out' } });
+
+    heroTl
+      /* TASTE + MAXING arrive together */
+      .to('.title-word--taste', {
+        scale: 1, opacity: 1, y: 0, rotateX: 0,
+        duration: 1.0, ease: 'expo.out'
+      }, 0)
+      .to('.title-word--maxing', {
+        scale: 1, opacity: 1, y: 0, rotateX: 0,
+        duration: 1.0, ease: 'expo.out'
+      }, 0.08)
+
+      /* Supporting text — nearly simultaneous with titles */
+      .to('.title-sub', {
+        y: 0, opacity: 1, duration: 0.7, ease: 'power3.out'
+      }, 0.15)
+      .to('.title-studio', {
+        x: 0, opacity: 1, duration: 0.5, ease: 'power3.out'
+      }, 0.12)
+      .to('.title-meta', {
+        y: 0, opacity: 1, duration: 0.5, ease: 'power3.out'
+      }, 0.18)
+
+      /* Float images — fly in right with the titles */
+      .to('.title-float-1', {
+        x: 0, y: 0, opacity: 1, rotation: 0, scale: 1,
+        duration: 0.9, ease: 'power3.out'
+      }, 0.05)
+      .to('.title-float-2', {
+        x: 0, y: 0, opacity: 1, rotation: 0, scale: 1,
+        duration: 0.9, ease: 'power3.out'
+      }, 0.1)
+      .to('.title-float-3', {
+        x: 0, y: 0, opacity: 1, rotation: 0, scale: 1,
+        duration: 0.9, ease: 'power3.out'
+      }, 0.15)
+
+      /* Quote card — bounces in with everything else */
+      .to('.title-quote-card', {
+        scale: 1, opacity: 1, rotation: 0,
+        duration: 1.0, ease: 'elastic.out(1, 0.5)'
+      }, 0.1);
+
+    /* Scatter elements — pop in simultaneously with the rest */
+    var heroScatter = hp.querySelectorAll('.scatter');
+    gsap.to(heroScatter, {
+      scale: 1, opacity: 1, rotation: 0,
+      duration: 0.6,
+      stagger: { each: 0.03, from: 'random' },
+      ease: 'back.out(2)',
+      delay: 0.05
+    });
+  }
+
+  /* ========== 14. SCATTER ELEMENT ANIMATIONS ========== */
+  function initScatterAnims() {
+    document.querySelectorAll('.scatter').forEach(function(el, i) {
+      gsap.to(el, {
+        y: '+=' + (4 + (i % 5) * 3),
+        x: '+=' + ((i % 3) - 1) * 4,
+        rotation: '+=' + ((i % 2 === 0) ? 1.5 : -1.5),
+        duration: 2.5 + (i % 4) * 0.7,
+        ease: 'sine.inOut',
+        repeat: -1, yoyo: true,
+        delay: (i % 6) * 0.3
+      });
+    });
+  }
+
+})();
+</script>
+
+<!-- Film grain overlay (SVG turbulence — resolution-independent) -->
+<svg style="position:absolute;width:0;height:0">
+  <filter id="grain">
+    <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
+    <feColorMatrix type="saturate" values="0"/>
+  </filter>
+</svg>
+<div class="grain-overlay"></div>
+
+</body>
+</html>
