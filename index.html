@@ -926,10 +926,12 @@
       overflow: hidden;
     }
     .habit-card.shrunk {
-      opacity: 0.5;
-      transform: scale(0.95) rotate(var(--rot, 0deg));
+      opacity: 0.35;
+      transform: scale(0.88) rotate(var(--rot, 0deg));
       transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.23,1,0.32,1);
     }
+    .habit-card.shrunk .habit-card-desc,
+    .habit-card.shrunk .habit-card-meta { display: none; }
     /* Full description (hidden by default, shown on expand) */
     .habit-card-full {
       max-height: 0;
@@ -944,23 +946,34 @@
                   margin 0.4s ease;
     }
     .habit-card.expanded {
-      padding: 32px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+      padding: 40px 44px;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.35);
       transform: rotate(0deg) !important;
       transition: padding 0.4s cubic-bezier(0.23,1,0.32,1),
                   box-shadow 0.4s ease,
                   transform 0.4s cubic-bezier(0.23,1,0.32,1);
     }
     .habit-card.expanded .habit-card-name {
-      font-size: 22px;
-      transition: font-size 0.4s ease;
+      font-size: clamp(26px, 3vw, 36px);
+      margin-bottom: 8px;
     }
-    .habit-card.expanded .habit-card-full {
-      max-height: 300px;
-      opacity: 1;
+    .habit-card.expanded .habit-card-url {
+      font-size: 14px;
       margin-bottom: 16px;
     }
+    .habit-card.expanded .habit-card-full {
+      max-height: 400px;
+      opacity: 1;
+      margin-bottom: 20px;
+      font-size: clamp(15px, 1.5vw, 18px);
+      line-height: 1.8;
+    }
     .habit-card.expanded .habit-card-desc { display: none; }
+    .habit-card.expanded .habit-card-tag,
+    .habit-card.expanded .habit-card-freq {
+      font-size: 11px;
+      padding: 5px 14px;
+    }
 
     /* ========== RESOURCE LIST ========== */
     .resource-list {
@@ -2957,10 +2970,10 @@
             if (c !== card) c.classList.add('shrunk');
           });
 
-          /* Expand this card's grid column: hovered = 2fr, others = 0.7fr */
+          /* Expand this card's grid column: hovered = 5fr, others = 0.5fr (~10:1 ratio) */
           var cols = [];
           cards.forEach(function(c, i) {
-            cols.push(i === idx ? '2fr' : '0.7fr');
+            cols.push(i === idx ? '5fr' : '0.5fr');
           });
           grid.style.gridTemplateColumns = cols.join(' ');
         });
