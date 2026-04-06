@@ -871,6 +871,8 @@
       transform: rotate(var(--rot, 0deg));
       box-shadow: 0 4px 24px rgba(0,0,0,0.25);
       position: relative;
+      cursor: pointer;
+      transition: filter 0.4s ease;
     }
     .habit-card::before {
       content: '';
@@ -916,6 +918,49 @@
       color: #4A6700;
       font-weight: 600;
     }
+    /* Habit card grid expansion — in-place, no overlay */
+    .habit-grid {
+      transition: grid-template-columns 0.5s cubic-bezier(0.23,1,0.32,1);
+    }
+    .habit-card {
+      transform-origin: center center;
+      transition: transform 0.4s cubic-bezier(0.23,1,0.32,1),
+                  opacity 0.3s ease,
+                  padding 0.4s cubic-bezier(0.23,1,0.32,1);
+      overflow: hidden;
+    }
+    .habit-card.shrunk {
+      opacity: 0.45;
+      transform: scale(0.92) rotate(var(--rot, 0deg));
+    }
+    /* Full description (hidden by default, shown on expand) */
+    .habit-card-full {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      font-size: 14px;
+      line-height: 1.75;
+      color: #333;
+      margin-bottom: 0;
+      transition: max-height 0.5s cubic-bezier(0.23,1,0.32,1),
+                  opacity 0.4s ease 0.1s,
+                  margin 0.4s ease;
+    }
+    .habit-card.expanded {
+      padding: 32px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.35);
+      transform: rotate(0deg) !important;
+    }
+    .habit-card.expanded .habit-card-name {
+      font-size: 22px;
+      transition: font-size 0.4s ease;
+    }
+    .habit-card.expanded .habit-card-full {
+      max-height: 300px;
+      opacity: 1;
+      margin-bottom: 16px;
+    }
+    .habit-card.expanded .habit-card-desc { display: none; }
 
     /* ========== RESOURCE LIST ========== */
     .resource-list {
@@ -2013,24 +2058,27 @@
           <div class="habit-card-name">Morning Pages</div>
           <span class="habit-card-url">juliacameronlive.com</span>
           <p class="habit-card-desc">3 pages, longhand, stream of consciousness, every morning. 12 weeks reveals actual taste vs. stated taste.</p>
+          <p class="habit-card-full">3 pages, longhand, stream of consciousness, every morning. From Julia Cameron's The Artist's Way. 12 weeks of morning pages reveals your actual taste vs. your stated taste. The practice works because it bypasses your inner critic — you write before the editorial voice wakes up. Most people discover they care about completely different things than they thought.</p>
           <div class="habit-card-meta">
             <span class="habit-card-tag">Creative Ritual</span>
             <span class="habit-card-freq">Daily / 20min</span>
           </div>
         </div>
-        <div class="habit-card anim-card" style="--rot:1.2deg" data-expand="habit" data-name="The Logbook" data-url="austinkleon.com" data-desc="One page of daily lists: what you looked at, read, watched, noticed. Austin Kleon's practice from Steal Like an Artist. Patterns emerge over weeks — you discover your actual aesthetic interests vs. what you think you're interested in. The list format removes the pressure of 'writing well' and lets you just observe." data-tag="Observation" data-freq="Daily / 5min">
+        <div class="habit-card anim-card" style="--rot:1.2deg" data-expand="habit" data-name="The Logbook" data-url="austinkleon.com" data-tag="Observation" data-freq="Daily / 5min">
           <div class="habit-card-name">The Logbook</div>
           <span class="habit-card-url">austinkleon.com</span>
           <p class="habit-card-desc">One page of daily lists: what you looked at, read, watched, noticed. Patterns over weeks reveal actual aesthetic interests.</p>
+          <p class="habit-card-full">One page of daily lists: what you looked at, read, watched, noticed. Austin Kleon's practice from Steal Like an Artist. Patterns emerge over weeks — you discover your actual aesthetic interests vs. what you think you're interested in. The list format removes the pressure of 'writing well' and lets you just observe.</p>
           <div class="habit-card-meta">
             <span class="habit-card-tag">Observation</span>
             <span class="habit-card-freq">Daily / 5min</span>
           </div>
         </div>
-        <div class="habit-card anim-card" style="--rot:-0.7deg" data-expand="habit" data-name="Articulation Test" data-url="shaping.design" data-desc="Pick two pieces of work. Write exactly why one is better. 'It feels right' is banned — you must replace it with specific observations about colour, composition, rhythm, weight, negative space. This is the single most powerful exercise for turning unconscious taste into conscious skill. The struggle IS the learning." data-tag="Critical Writing" data-freq="Weekly / 15min">
+        <div class="habit-card anim-card" style="--rot:-0.7deg" data-expand="habit" data-name="Articulation Test" data-url="shaping.design" data-tag="Critical Writing" data-freq="Weekly / 15min">
           <div class="habit-card-name">Articulation Test</div>
           <span class="habit-card-url">shaping.design</span>
           <p class="habit-card-desc">Pick two pieces. Write exactly why one is better. "It feels right" is banned. Replace with specific observations.</p>
+          <p class="habit-card-full">Pick two pieces of work. Write exactly why one is better. 'It feels right' is banned — you must replace it with specific observations about colour, composition, rhythm, weight, negative space. This is the single most powerful exercise for turning unconscious taste into conscious skill. The struggle IS the learning.</p>
           <div class="habit-card-meta">
             <span class="habit-card-tag">Critical Writing</span>
             <span class="habit-card-freq">Weekly / 15min</span>
@@ -2052,24 +2100,27 @@
           <div class="habit-card-name">Swipe File</div>
           <span class="habit-card-url">blog.readymag.com</span>
           <p class="habit-card-desc">Capture what stops you. Apply Spark-Strength-Service filter weekly. The deletion practice is as important as the capture.</p>
+          <p class="habit-card-full">Capture what stops you. Apply the Spark-Strength-Service filter weekly: Does it spark something? Is it technically strong? Can it serve your work? The deletion practice is as important as the capture — ruthlessly remove saves that no longer resonate. Your swipe file is a mirror of your evolving taste.</p>
           <div class="habit-card-meta">
             <span class="habit-card-tag">Reference</span>
             <span class="habit-card-freq">Ongoing</span>
           </div>
         </div>
-        <div class="habit-card anim-card" style="--rot:-1.5deg" data-expand="habit" data-name="Diverse-Ratio Audit" data-url="itsnicethat.com" data-desc="Review your inspiration sources monthly. If 80% of your references are from the same decade, medium, and culture — you're in a closed loop. Break it: add architecture if you only follow graphic design. Add 1970s film if you only watch contemporary work. Taste that references only itself calcifies." data-tag="Source Audit" data-freq="Monthly / 30min">
+        <div class="habit-card anim-card" style="--rot:-1.5deg" data-expand="habit" data-name="Diverse-Ratio Audit" data-url="itsnicethat.com" data-tag="Source Audit" data-freq="Monthly / 30min">
           <div class="habit-card-name">Diverse-Ratio Audit</div>
           <span class="habit-card-url">itsnicethat.com</span>
           <p class="habit-card-desc">Review inspiration sources monthly. Taste that only references contemporary work in your field is a closed loop.</p>
+          <p class="habit-card-full">Review your inspiration sources monthly. If 80% of your references are from the same decade, medium, and culture — you're in a closed loop. Break it: add architecture if you only follow graphic design. Add 1970s film if you only watch contemporary work. Taste that references only itself calcifies.</p>
           <div class="habit-card-meta">
             <span class="habit-card-tag">Source Audit</span>
             <span class="habit-card-freq">Monthly / 30min</span>
           </div>
         </div>
-        <div class="habit-card anim-card" style="--rot:0.9deg" data-expand="habit" data-name="Twyla Tharp's Box" data-url="Physical Practice" data-desc="Twyla Tharp's method from The Creative Habit: start every project with a physical cardboard box. Everything related goes in — clippings, notes, photos, objects, scraps. When you're stuck, reach into the box. What you keep reaching for reveals your actual taste. What stays at the bottom reveals what you thought mattered but didn't." data-tag="Project Ritual" data-freq="Per Project">
+        <div class="habit-card anim-card" style="--rot:0.9deg" data-expand="habit" data-name="Twyla Tharp's Box" data-url="Physical Practice" data-tag="Project Ritual" data-freq="Per Project">
           <div class="habit-card-name">Twyla Tharp's Box</div>
           <span class="habit-card-url">Physical Practice</span>
           <p class="habit-card-desc">A physical box per project. Everything relevant goes in. What you keep reaching for reveals your actual taste.</p>
+          <p class="habit-card-full">Twyla Tharp's method from The Creative Habit: start every project with a physical cardboard box. Everything related goes in — clippings, notes, photos, objects, scraps. When you're stuck, reach into the box. What you keep reaching for reveals your actual taste. What stays at the bottom reveals what you thought mattered but didn't.</p>
           <div class="habit-card-meta">
             <span class="habit-card-tag">Project Ritual</span>
             <span class="habit-card-freq">Per Project</span>
@@ -2797,8 +2848,9 @@
     var expandDesc = document.getElementById('expandDesc');
     var expandTag = document.getElementById('expandTag');
 
-    /* Bind ALL cards with data-expand */
+    /* Bind ALL cards with data-expand EXCEPT habits (they use hover-expand) */
     document.querySelectorAll('[data-expand]').forEach(function(card) {
+      if (card.dataset.expand === 'habit') return;
       card.style.cursor = 'pointer';
       card.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -2876,6 +2928,54 @@
       e.stopPropagation();
     });
   }
+
+  /* ========== 12b. HABIT CARD HOVER-EXPAND (in-place grid) ========== */
+  (function initHabitHover() {
+    var grids = document.querySelectorAll('.habit-grid');
+    var currentExpanded = null;
+
+    grids.forEach(function(grid) {
+      var cards = grid.querySelectorAll('.habit-card');
+
+      cards.forEach(function(card, idx) {
+        card.addEventListener('mouseenter', function() {
+          if (currentExpanded === card) return;
+
+          /* Collapse previous */
+          if (currentExpanded) {
+            currentExpanded.classList.remove('expanded');
+            currentExpanded.closest('.habit-grid').querySelectorAll('.habit-card').forEach(function(c) {
+              c.classList.remove('shrunk');
+            });
+          }
+
+          currentExpanded = card;
+          card.classList.add('expanded');
+
+          /* Shrink siblings */
+          cards.forEach(function(c) {
+            if (c !== card) c.classList.add('shrunk');
+          });
+
+          /* Expand this card's grid column: hovered = 2fr, others = 0.7fr */
+          var cols = [];
+          cards.forEach(function(c, i) {
+            cols.push(i === idx ? '2fr' : '0.7fr');
+          });
+          grid.style.gridTemplateColumns = cols.join(' ');
+        });
+      });
+
+      grid.addEventListener('mouseleave', function() {
+        if (currentExpanded) {
+          currentExpanded.classList.remove('expanded');
+          currentExpanded = null;
+        }
+        cards.forEach(function(c) { c.classList.remove('shrunk'); });
+        grid.style.gridTemplateColumns = '';
+      });
+    });
+  })();
 
   /* ========== 13. HERO ENTRANCE — dramatic reveal after loader ========== */
   function initHeroEntrance() {
