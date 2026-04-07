@@ -1462,21 +1462,6 @@
   <span class="loader-sub">presents</span>
 </div>
 
-<!-- Green plus that expands to fill screen -->
-<!-- greenPlus removed — loaderStar expands directly -->
-
-<!-- SVG mask — userSpaceOnUse so the plus stays square regardless of viewport aspect ratio -->
-<svg id="revealSvg" style="position:absolute;width:0;height:0">
-  <defs>
-    <mask id="plusRevealMask" maskContentUnits="userSpaceOnUse">
-      <rect id="maskBg" fill="white"/>
-      <g id="plusHole">
-        <rect class="plus-v" fill="black"/>
-        <rect class="plus-h" fill="black"/>
-      </g>
-    </mask>
-  </defs>
-</svg>
 
 <!-- ==================== CURSOR ==================== -->
 <div class="cursor-dot" id="cursorDot"></div>
@@ -2407,26 +2392,8 @@
     gsap.set(heroPanel.querySelectorAll('.scatter'), { opacity: 0, scale: 0 });
   }
 
-  /* ========== 3. LOADER + PLUS WIPE ========== */
+  /* ========== 3. LOADER ========== */
   var loaderStar = document.getElementById('loaderStar');
-  var plusHole = document.getElementById('plusHole');
-
-  /* Set up pixel-based SVG mask so plus stays perfectly square on any aspect ratio */
-  var vw = window.innerWidth, vh = window.innerHeight;
-  var cx = vw / 2, cy = vh / 2;
-  var armLen = 60, armW = 36, rr = 4; /* 30% arm width matches CSS .loader-star */
-  var maskBg = document.getElementById('maskBg');
-  maskBg.setAttribute('width', vw);
-  maskBg.setAttribute('height', vh);
-  var plusV = plusHole.querySelector('.plus-v');
-  var plusH = plusHole.querySelector('.plus-h');
-  plusV.setAttribute('x', -armW / 2); plusV.setAttribute('y', -armLen);
-  plusV.setAttribute('width', armW); plusV.setAttribute('height', armLen * 2);
-  plusV.setAttribute('rx', rr); plusV.setAttribute('ry', rr);
-  plusH.setAttribute('x', -armLen); plusH.setAttribute('y', -armW / 2);
-  plusH.setAttribute('width', armLen * 2); plusH.setAttribute('height', armW);
-  plusH.setAttribute('rx', rr); plusH.setAttribute('ry', rr);
-  plusHole.setAttribute('transform', 'translate(' + cx + ',' + cy + ') scale(0) rotate(0)');
 
   var loaderTl = gsap.timeline({
     onComplete: function() {
@@ -2456,33 +2423,16 @@
     }, 'expand')
 
     .add(function() {
-      loader.style.mask = 'url(#plusRevealMask)';
-      loader.style.webkitMask = 'url(#plusRevealMask)';
-
-      var revealObj = { s: 0, r: 0 };
-      var heroStarted = false;
-      /* Need scale large enough that the plus hole covers entire viewport.
-         Diagonal / armLen ≈ how big. Use 40 to be safe. */
-      var diag = Math.sqrt(vw * vw + vh * vh);
-      var maxScale = (diag / armLen) * 1.2;
-
-      gsap.to(revealObj, { r: 180, duration: 0.9, ease: 'power1.out' });
-
-      gsap.to(revealObj, {
-        s: maxScale,
-        duration: 0.9,
+      /* Simple compositor-only reveal: scale loader up + fade out.
+         Way cheaper than SVG mask + setAttribute per frame.
+         Hero starts entering halfway through. */
+      initHeroEntrance();
+      gsap.to(loader, {
+        scale: 1.4,
+        opacity: 0,
+        duration: 0.7,
         ease: 'power2.in',
-        onUpdate: function() {
-          plusHole.setAttribute('transform',
-            'translate(' + cx + ',' + cy + ') scale(' + revealObj.s + ') rotate(' + revealObj.r + ')');
-          if (!heroStarted && revealObj.s > maxScale * 0.3) {
-            heroStarted = true;
-            initHeroEntrance();
-          }
-        },
-        onComplete: function() {
-          loader.style.display = 'none';
-        }
+        onComplete: function() { loader.style.display = 'none'; }
       });
     }, 'expand+=0.25');
 
