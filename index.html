@@ -2423,15 +2423,21 @@
     }, 'expand')
 
     .add(function() {
-      /* Simple compositor-only reveal: scale loader up + fade out.
-         Way cheaper than SVG mask + setAttribute per frame.
-         Hero starts entering halfway through. */
+      /* GPU-cheap plus-shaped wipe: clip the loader to a plus polygon,
+         then shrink it via transform (compositor-only, no per-frame DOM writes).
+         The loaderStar inside is already scale 200 = solid green, so the
+         visible plus shows pure green and shrinks to nothing in the center. */
+      gsap.set(loader, {
+        clipPath: 'polygon(40% 0%, 60% 0%, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 100%, 40% 100%, 40% 60%, 0% 60%, 0% 40%, 40% 40%)',
+        webkitClipPath: 'polygon(40% 0%, 60% 0%, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 100%, 40% 100%, 40% 60%, 0% 60%, 0% 40%, 40% 40%)',
+        transformOrigin: 'center center'
+      });
       initHeroEntrance();
       gsap.to(loader, {
-        scale: 1.4,
-        opacity: 0,
-        duration: 0.7,
-        ease: 'power2.in',
+        scale: 0,
+        rotation: 90,
+        duration: 1.0,
+        ease: 'power2.inOut',
         onComplete: function() { loader.style.display = 'none'; }
       });
     }, 'expand+=0.25');
