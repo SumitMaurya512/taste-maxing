@@ -1442,22 +1442,11 @@
       .nav-hint { display: none; }
     }
 
-    /* ========== FILM GRAIN OVERLAY ========== */
-    .grain-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 99999;
-      pointer-events: none;
-      filter: url(#grain);
-      opacity: 0.04;
-      mix-blend-mode: overlay;
-    }
 
     /* ========== PREFERS REDUCED MOTION ========== */
     @media (prefers-reduced-motion: reduce) {
       .loader { display: none; }
       .ticker-strip .ticker-scroll { animation: none; }
-      .grain-overlay { display: none; }
       * { animation: none !important; transition: none !important; }
     }
   </style>
@@ -1889,15 +1878,15 @@
       </div>
       <div class="insta-featured mt-32">
         <a href="https://www.instagram.com/eyecannndy/" target="_blank" rel="noopener" class="insta-featured-card anim-body">
-          <img src="img/insta-eyecannndy.png" alt="@eyecannndy grid">
+          <img src="img/insta-eyecannndy.webp" alt="@eyecannndy grid" loading="lazy" decoding="async">
           <div class="insta-featured-handle">@eyecannndy<div class="insta-featured-desc">Visual candy — curated frames, art direction, cinema</div></div>
         </a>
         <a href="https://www.instagram.com/frame.set/" target="_blank" rel="noopener" class="insta-featured-card anim-body">
-          <img src="img/insta-frameset.png" alt="@frame.set grid">
+          <img src="img/insta-frameset.webp" alt="@frame.set grid" loading="lazy" decoding="async">
           <div class="insta-featured-handle">@frame.set<div class="insta-featured-desc">Cinematic frames — composition & color grading lessons</div></div>
         </a>
         <a href="https://www.instagram.com/goodadsmatter/" target="_blank" rel="noopener" class="insta-featured-card anim-body">
-          <img src="img/insta-goodadsmatter.png" alt="@goodadsmatter grid">
+          <img src="img/insta-goodadsmatter.webp" alt="@goodadsmatter grid" loading="lazy" decoding="async">
           <div class="insta-featured-handle">@goodadsmatter<div class="insta-featured-desc">Best advertising work — commercial creativity with taste</div></div>
         </a>
       </div>
@@ -3160,14 +3149,6 @@
 })();
 </script>
 
-<!-- Film grain overlay (SVG turbulence — resolution-independent) -->
-<svg style="position:absolute;width:0;height:0">
-  <filter id="grain">
-    <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
-    <feColorMatrix type="saturate" values="0"/>
-  </filter>
-</svg>
-<div class="grain-overlay"></div>
 
 </body>
 </html>
