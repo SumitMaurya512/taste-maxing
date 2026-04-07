@@ -1307,7 +1307,7 @@
     .platform-card-img,
     .cinema-card-img {
       border: 5px solid var(--hot-red);
-      filter: grayscale(0.15) brightness(1.05) contrast(1.05);
+      filter: url(#papercut) grayscale(0.15) brightness(1.05) contrast(1.05);
       box-shadow:
         6px 5px 0 0 rgba(255,61,0,0.3),
         -4px 6px 0 0 rgba(200,255,0,0.15),
@@ -1316,7 +1316,7 @@
     }
     .quote-portrait {
       border-width: 5px;
-      filter: grayscale(0.1) contrast(1.05) brightness(1.15);
+      filter: url(#papercut) grayscale(0.1) contrast(1.05) brightness(1.15);
       box-shadow:
         8px 6px 0 0 rgba(255,61,0,0.35),
         -5px 7px 0 0 rgba(200,255,0,0.2),
@@ -1325,7 +1325,7 @@
     }
     .title-float-img {
       border: 5px solid var(--hot-red) !important;
-      filter: grayscale(0.2) brightness(1.05) contrast(1.05) !important;
+      filter: url(#papercut) grayscale(0.2) brightness(1.05) contrast(1.05) !important;
       box-shadow:
         5px 4px 0 0 rgba(255,61,0,0.3),
         -3px 5px 0 0 rgba(200,255,0,0.15);
@@ -1453,6 +1453,15 @@
 </head>
 <body>
 
+<!-- ==================== SVG FILTERS (paper cutout roughness) ==================== -->
+<svg style="position:absolute;width:0;height:0;" aria-hidden="true">
+  <defs>
+    <filter id="papercut" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="4" seed="2" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
 
 <!-- ==================== LOADER ==================== -->
 <div class="loader" id="loader">
@@ -1462,6 +1471,21 @@
   <span class="loader-sub">presents</span>
 </div>
 
+<!-- Green plus that expands to fill screen -->
+<!-- greenPlus removed — loaderStar expands directly -->
+
+<!-- SVG mask — userSpaceOnUse so the plus stays square regardless of viewport aspect ratio -->
+<svg id="revealSvg" style="position:absolute;width:0;height:0">
+  <defs>
+    <mask id="plusRevealMask" maskContentUnits="userSpaceOnUse">
+      <rect id="maskBg" fill="white"/>
+      <g id="plusHole">
+        <rect class="plus-v" fill="black"/>
+        <rect class="plus-h" fill="black"/>
+      </g>
+    </mask>
+  </defs>
+</svg>
 
 <!-- ==================== CURSOR ==================== -->
 <div class="cursor-dot" id="cursorDot"></div>
@@ -2392,8 +2416,26 @@
     gsap.set(heroPanel.querySelectorAll('.scatter'), { opacity: 0, scale: 0 });
   }
 
-  /* ========== 3. LOADER ========== */
+  /* ========== 3. LOADER + PLUS WIPE ========== */
   var loaderStar = document.getElementById('loaderStar');
+  var plusHole = document.getElementById('plusHole');
+
+  /* Set up pixel-based SVG mask so plus stays perfectly square on any aspect ratio */
+  var vw = window.innerWidth, vh = window.innerHeight;
+  var cx = vw / 2, cy = vh / 2;
+  var armLen = 60, armW = 36, rr = 4; /* 30% arm width matches CSS .loader-star */
+  var maskBg = document.getElementById('maskBg');
+  maskBg.setAttribute('width', vw);
+  maskBg.setAttribute('height', vh);
+  var plusV = plusHole.querySelector('.plus-v');
+  var plusH = plusHole.querySelector('.plus-h');
+  plusV.setAttribute('x', -armW / 2); plusV.setAttribute('y', -armLen);
+  plusV.setAttribute('width', armW); plusV.setAttribute('height', armLen * 2);
+  plusV.setAttribute('rx', rr); plusV.setAttribute('ry', rr);
+  plusH.setAttribute('x', -armLen); plusH.setAttribute('y', -armW / 2);
+  plusH.setAttribute('width', armLen * 2); plusH.setAttribute('height', armW);
+  plusH.setAttribute('rx', rr); plusH.setAttribute('ry', rr);
+  plusHole.setAttribute('transform', 'translate(' + cx + ',' + cy + ') scale(0) rotate(0)');
 
   var loaderTl = gsap.timeline({
     onComplete: function() {
@@ -2423,22 +2465,33 @@
     }, 'expand')
 
     .add(function() {
-      /* GPU-cheap plus-shaped wipe: clip the loader to a plus polygon,
-         then shrink it via transform (compositor-only, no per-frame DOM writes).
-         The loaderStar inside is already scale 200 = solid green, so the
-         visible plus shows pure green and shrinks to nothing in the center. */
-      gsap.set(loader, {
-        clipPath: 'polygon(40% 0%, 60% 0%, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 100%, 40% 100%, 40% 60%, 0% 60%, 0% 40%, 40% 40%)',
-        webkitClipPath: 'polygon(40% 0%, 60% 0%, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 100%, 40% 100%, 40% 60%, 0% 60%, 0% 40%, 40% 40%)',
-        transformOrigin: 'center center'
-      });
-      initHeroEntrance();
-      gsap.to(loader, {
-        scale: 0,
-        rotation: 90,
-        duration: 1.0,
-        ease: 'power2.inOut',
-        onComplete: function() { loader.style.display = 'none'; }
+      loader.style.mask = 'url(#plusRevealMask)';
+      loader.style.webkitMask = 'url(#plusRevealMask)';
+
+      var revealObj = { s: 0, r: 0 };
+      var heroStarted = false;
+      /* Need scale large enough that the plus hole covers entire viewport.
+         Diagonal / armLen ≈ how big. Use 40 to be safe. */
+      var diag = Math.sqrt(vw * vw + vh * vh);
+      var maxScale = (diag / armLen) * 1.2;
+
+      gsap.to(revealObj, { r: 180, duration: 0.9, ease: 'power1.out' });
+
+      gsap.to(revealObj, {
+        s: maxScale,
+        duration: 0.9,
+        ease: 'power2.in',
+        onUpdate: function() {
+          plusHole.setAttribute('transform',
+            'translate(' + cx + ',' + cy + ') scale(' + revealObj.s + ') rotate(' + revealObj.r + ')');
+          if (!heroStarted && revealObj.s > maxScale * 0.3) {
+            heroStarted = true;
+            initHeroEntrance();
+          }
+        },
+        onComplete: function() {
+          loader.style.display = 'none';
+        }
       });
     }, 'expand+=0.25');
 
@@ -2657,29 +2710,25 @@
       targetY = (e.clientY / window.innerHeight - 0.5) * 2;
     });
 
-    /* RAF loop — early-exit when mouse is still. Skips rotate entirely.
-       Only runs on fine-pointer devices (desktop with real mouse). */
-    var isFinePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-    var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (isFinePointer && !prefersReducedMotion) {
-      (function parallaxLoop() {
-        var dx = targetX - currentX;
-        var dy = targetY - currentY;
-        /* Early exit: if mouse is effectively still, skip writes entirely */
-        if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
-          currentX += dx * 0.08;
-          currentY += dy * 0.08;
-          for (var i = 0; i < items.length; i++) {
-            var it = items[i];
-            var L = it.layer;
-            var moveX = -currentX * L * 25;
-            var moveY = -currentY * L * 18;
-            it.el.style.translate = moveX + 'px ' + moveY + 'px';
-          }
-        }
-        requestAnimationFrame(parallaxLoop);
-      })();
-    }
+    /* RAF loop — uses CSS `translate` property (independent of GSAP transform)
+       so it doesn't conflict with float/scatter gsap tweens */
+    (function parallaxLoop() {
+      currentX += (targetX - currentX) * 0.08;
+      currentY += (targetY - currentY) * 0.08;
+
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i];
+        var L = it.layer;
+        /* True parallax: deeper layers move MORE, opposite to mouse */
+        var moveX = -currentX * L * 25;
+        var moveY = -currentY * L * 18;
+        /* CSS translate is independent of GSAP's transform — no conflicts */
+        it.el.style.translate = moveX + 'px ' + moveY + 'px';
+        /* 3D tilt via GSAP (doesn't conflict with float anims which only use x/y) */
+        it.el.style.rotate = 'y ' + (currentX * L * 3) + 'deg';
+      }
+      requestAnimationFrame(parallaxLoop);
+    })();
   }
 
   /* ========== 9. TIMER ========== */
